@@ -1,0 +1,93 @@
+---
+/*
+ * Decorative only: aria-hidden and pointer-events: none, so it is invisible to
+ * assistive technology and cannot intercept a click. Nothing depends on it -
+ * delete the sprite PNGs and the site is unaffected, the element just paints
+ * no background.
+ *
+ * Deliberately no `define:vars` and no inline style attribute. CSP style-src
+ * governs style attributes as well as <style> elements (PLAN.md 3.5c), and
+ * define:vars compiles to exactly such an attribute. The defaults below
+ * mirror site/src/config/avatar.json; the island overrides them from that file
+ * at runtime, which is also what makes a config change take effect without
+ * touching CSS.
+ */
+---
+
+<div class="avatar-anchor" aria-hidden="true">
+  <div class="avatar" data-avatar data-mode="idle" data-facing="down"></div>
+</div>
+
+<style>
+  /*
+   * A zero-height sticky anchor: it occupies no layout space, so it cannot
+   * push content around, and it sticks only while the journey is on screen
+   * because a sticky element is bounded by its containing block.
+   */
+  .avatar-anchor {
+    position: sticky;
+    inset-block-start: 38vh;
+    block-size: 0;
+    z-index: 1;
+    pointer-events: none;
+  }
+
+  .avatar {
+    /* Defaults mirroring avatar.json, used before (or without) script. */
+    --frame-w: 32px;
+    --frame-h: 32px;
+    --sprite-frames: 1;
+    --sprite-duration: 1200ms;
+    --sprite-sheet: url('/sprites/default/idle.png');
+
+    position: absolute;
+    /* Centred on the rail column - which is why the rail width is one shared
+       custom property rather than a number copied between components. */
+    inset-inline-start: calc(var(--rail-width) / 2);
+    translate: -50% 0;
+
+    inline-size: calc(var(--frame-w) * var(--avatar-scale));
+    block-size: calc(var(--frame-h) * var(--avatar-scale));
+
+    /* Nearest-neighbour: anything else turns pixel art into mush. */
+    image-rendering: pixelated;
+
+    background-image: var(--sprite-sheet);
+    background-repeat: no-repeat;
+    background-position: 0 0;
+    background-size: calc(var(--frame-w) * var(--avatar-scale) * var(--sprite-frames))
+      calc(var(--frame-h) * var(--avatar-scale));
+  }
+
+  /*
+   * The art is drawn facing right and mirrored for upward movement, so only
+   * one set of sheets is ever needed. The translate is restated because
+   * scale: -1 flips the axis the -50% centring acts on.
+   */
+  .avatar[data-facing='up'] {
+    scale: -1 1;
+    translate: 50% 0;
+  }
+
+  /*
+   * With --sprite-frames at its default of 1 this is a no-op, so no script
+   * means a single static frame. Under reduced motion the animation is never
+   * declared at all, and the island never switches to the walk sheet.
+   */
+  @media (prefers-reduced-motion: no-preference) {
+    .avatar {
+      animation: sprite var(--sprite-duration) steps(var(--sprite-frames)) infinite;
+    }
+  }
+
+  /*
+   * steps() with the default jump-end lands on each frame in turn and never
+   * reaches the end position, which is why this travels the full sheet width
+   * rather than stopping a frame short.
+   */
+  @keyframes sprite {
+    to {
+      background-position-x: calc(var(--frame-w) * var(--avatar-scale) * var(--sprite-frames) * -1);
+    }
+  }
+</style>

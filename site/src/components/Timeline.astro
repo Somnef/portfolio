@@ -1,4 +1,5 @@
 ---
+import PixelAvatar from './PixelAvatar.astro';
 import TimelineEntry from './TimelineEntry.astro';
 import { toLang, useTranslations } from '../i18n';
 import { byDateDesc, getLocalized } from '../lib/content';
@@ -15,6 +16,8 @@ const entries = (await getLocalized('timeline', lang)).sort(byDateDesc);
     <p>{t('journey.intro')}</p>
   </header>
 
+  <PixelAvatar />
+
   <ol class="entries">
     {entries.map((item, i) => (
       <TimelineEntry item={item} open={i === 0} />
@@ -22,12 +25,31 @@ const entries = (await getLocalized('timeline', lang)).sort(byDateDesc);
   </ol>
 </section>
 
+<script>
+  import '../islands/pixel-avatar';
+</script>
+
 <style>
   .journey {
     padding-block: var(--space-7);
-    /* The avatar in a later phase sits on this rail, so its width is a single
-       named value rather than a number repeated across components. */
-    --rail-width: 1.25rem;
+
+    /*
+     * The rail column is sized to hold the avatar, so the sprite is centred on
+     * the line and still cannot reach the text: at every breakpoint the sprite
+     * is exactly as wide as the column it sits in.
+     *
+     * Scaling is integer only - 1x on narrow screens, 2x from 48rem - because
+     * fractional scaling turns pixel art to mush.
+     */
+    --rail-width: 2rem;
+    --avatar-scale: 1;
+  }
+
+  @media (min-width: 48rem) {
+    .journey {
+      --rail-width: 4rem;
+      --avatar-scale: 2;
+    }
   }
 
   header {
