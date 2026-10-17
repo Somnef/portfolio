@@ -39,6 +39,15 @@ export function pathWithoutLocale(url: URL): string {
   return url.pathname;
 }
 
+/** Month and year only - what a timeline needs, rather than an exact day. */
+export function formatMonthYear(date: Date, lang: Lang): string {
+  return new Intl.DateTimeFormat(lang, {
+    year: 'numeric',
+    month: 'short',
+    timeZone: 'UTC',
+  }).format(date);
+}
+
 /** Dates rendered in the reader's locale rather than a fixed format. */
 export function formatDate(date: Date, lang: Lang): string {
   return new Intl.DateTimeFormat(lang, {
