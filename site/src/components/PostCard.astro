@@ -1,0 +1,126 @@
+---
+import { getRelativeLocaleUrl } from 'astro:i18n';
+import { formatDate, toLang, useTranslations } from '../i18n';
+import { readingTimeMinutes, tagSlug, type Localized } from '../lib/content';
+
+interface Props {
+  item: Localized<'writing'>;
+}
+
+const { item } = Astro.props;
+const { entry, slug } = item;
+const data = entry.data;
+
+const lang = toLang(Astro.currentLocale);
+const t = useTranslations(lang);
+const minutes = readingTimeMinutes(entry.body);
+---
+
+<li class="post">
+  <article>
+    <span class="meta">
+      <span class="type">{t(`writing.type.${data.type}` as 'writing.type.note')}</span>
+      <time datetime={data.pubDate.toISOString().slice(0, 10)}>
+        {formatDate(data.pubDate, lang)}
+      </time>
+      <span>
+        {minutes} {t('writing.minRead')}
+      </span>
+      {data.draft && <span class="draft">{t('writing.draft')}</span>}
+    </span>
+
+    <h3>
+      <a href={getRelativeLocaleUrl(lang, `/writing/${slug}/`)}>{data.title}</a>
+    </h3>
+
+    <p class="description">{data.description}</p>
+
+    <ul class="tags">
+      {data.tags.map((tag) => (
+        <li>
+          <a href={getRelativeLocaleUrl(lang, `/writing/tag/${tagSlug(tag)}/`)}>#{tag}</a>
+        </li>
+      ))}
+    </ul>
+  </article>
+</li>
+
+<style>
+  .post {
+    padding-block: var(--space-5);
+    border-block-end: var(--border-width) solid var(--color-divider);
+  }
+
+  .post:last-child {
+    border-block-end: 0;
+  }
+
+  article {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+
+  .meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-3);
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--color-text-muted);
+  }
+
+  .type {
+    color: var(--color-accent-dim);
+  }
+
+  /* Drafts only ever render in development, so this badge is a dev signal
+     rather than something visitors will meet. */
+  .draft {
+    color: var(--color-on-accent);
+    background: var(--color-accent);
+    border-radius: var(--radius-sm);
+    padding: 0.05rem 0.35rem;
+  }
+
+  h3 {
+    font-size: var(--text-lg);
+  }
+
+  h3 a {
+    color: var(--color-text);
+    text-decoration: none;
+  }
+
+  h3 a:hover {
+    color: var(--color-accent);
+  }
+
+  .description {
+    color: var(--color-text-muted);
+    font-size: var(--text-sm);
+  }
+
+  .tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2) var(--space-3);
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+  }
+
+  .tags a {
+    color: var(--color-text-muted);
+    text-decoration: none;
+  }
+
+  .tags a:hover {
+    color: var(--color-accent);
+  }
+</style>

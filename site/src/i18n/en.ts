@@ -54,6 +54,30 @@ const en = {
   'fallback.notice':
     'This entry has not been translated into French yet, so the English version is shown.',
 
+  'nav.writing': 'Writing',
+
+  'writing.heading': 'Writing',
+  'writing.intro': 'Tutorials, articles and shorter notes. Filter by type or tag.',
+  'writing.type.tutorial': 'Tutorial',
+  'writing.type.article': 'Article',
+  'writing.type.note': 'Note',
+  'writing.byType': 'By type',
+  'writing.byTag': 'By tag',
+  'writing.all': 'All writing',
+  'writing.minRead': 'min read',
+  'writing.published': 'Published',
+  'writing.updated': 'Updated',
+  'writing.draft': 'Draft',
+  'writing.toc': 'On this page',
+  'writing.empty': 'Nothing published here yet.',
+  'writing.feed': 'RSS feed',
+  'writing.feedDescription': 'Tutorials, articles and notes on cloud infrastructure and DevOps.',
+  'writing.taggedWith': 'Tagged',
+  'writing.ofType': 'Type',
+
+  'cv.download': 'Download CV',
+  'cv.downloadLang': 'CV (English)',
+
   'link.newTab': '(opens in a new tab)',
 
   'skip.content': 'Skip to content',

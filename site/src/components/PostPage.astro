@@ -1,0 +1,238 @@
+---
+import { render } from 'astro:content';
+import { getRelativeLocaleUrl } from 'astro:i18n';
+import FallbackNotice from './FallbackNotice.astro';
+import TableOfContents from './TableOfContents.astro';
+import { formatDate, toLang, useTranslations } from '../i18n';
+import { readingTimeMinutes, resolveReference, tagSlug, type Localized } from '../lib/content';
+
+interface Props {
+  item: Localized<'writing'>;
+}
+
+const { item } = Astro.props;
+const { entry, isFallback } = item;
+const data = entry.data;
+
+const lang = toLang(Astro.currentLocale);
+const t = useTranslations(lang);
+
+const { Content, headings } = await render(entry);
+const minutes = readingTimeMinutes(entry.body);
+
+const related = (
+  await Promise.all(data.relatedProjects.map((ref) => resolveReference('projects', lang, ref.id)))
+).filter((p): p is NonNullable<typeof p> => p !== undefined);
+
+const projectsHref = getRelativeLocaleUrl(lang, '/projects/');
+---
+
+<article class="post">
+  <nav class="back">
+    <a href={getRelativeLocaleUrl(lang, '/writing/')}>
+      <span aria-hidden="true">←</span> {t('writing.heading')}
+    </a>
+  </nav>
+
+  <header>
+    <span class="meta">
+      <span class="type">{t(`writing.type.${data.type}` as 'writing.type.note')}</span>
+      <span>
+        {t('writing.published')}
+        <time datetime={data.pubDate.toISOString().slice(0, 10)}>
+          {formatDate(data.pubDate, lang)}
+        </time>
+      </span>
+      {data.updatedDate && (
+        <span>
+          {t('writing.updated')}
+          <time datetime={data.updatedDate.toISOString().slice(0, 10)}>
+            {formatDate(data.updatedDate, lang)}
+          </time>
+        </span>
+      )}
+      <span>
+        {minutes} {t('writing.minRead')}
+      </span>
+      {data.draft && <span class="draft">{t('writing.draft')}</span>}
+    </span>
+
+    <h1>{data.title}</h1>
+    <p class="description">{data.description}</p>
+
+    <ul class="tags">
+      {data.tags.map((tag) => (
+        <li>
+          <a href={getRelativeLocaleUrl(lang, `/writing/tag/${tagSlug(tag)}/`)}>#{tag}</a>
+        </li>
+      ))}
+    </ul>
+  </header>
+
+  {isFallback && <FallbackNotice />}
+
+  <TableOfContents headings={headings} />
+
+  <div class="prose">
+    <Content />
+  </div>
+
+  {related.length > 0 && (
+    <footer class="related">
+      <span class="related-label">{t('journey.relatedProjects')}</span>
+      <ul>
+        {related.map((p) => (
+          <li>
+            <a href={`${projectsHref}#${p.slug}`}>{p.entry.data.title}</a>
+          </li>
+        ))}
+      </ul>
+    </footer>
+  )}
+</article>
+
+<style>
+  .post {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-5);
+    padding-block: var(--space-6) var(--space-8);
+  }
+
+  .back {
+    font-family: var(--font-mono);
+    font-size: var(--text-sm);
+  }
+
+  .back a {
+    text-decoration: none;
+  }
+
+  .back a:hover {
+    text-decoration: underline;
+  }
+
+  header {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+  }
+
+  .meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-3);
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--color-text-muted);
+  }
+
+  .type {
+    color: var(--color-accent-dim);
+  }
+
+  .draft {
+    color: var(--color-on-accent);
+    background: var(--color-accent);
+    border-radius: var(--radius-sm);
+    padding: 0.05rem 0.35rem;
+  }
+
+  h1 {
+    font-size: var(--text-2xl);
+  }
+
+  .description {
+    color: var(--color-text-muted);
+    font-size: var(--text-lg);
+  }
+
+  .tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2) var(--space-3);
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+  }
+
+  .tags a {
+    color: var(--color-text-muted);
+    text-decoration: none;
+  }
+
+  .tags a:hover {
+    color: var(--color-accent);
+  }
+
+  /* Article body. Headings keep their generated ids, which is what the table
+     of contents links to. */
+  .prose {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+  }
+
+  .prose :global(h2) {
+    font-size: var(--text-xl);
+    margin-block-start: var(--space-4);
+    scroll-margin-block-start: var(--space-5);
+  }
+
+  .prose :global(h3) {
+    font-size: var(--text-lg);
+    margin-block-start: var(--space-2);
+    scroll-margin-block-start: var(--space-5);
+  }
+
+  .prose :global(p),
+  .prose :global(li) {
+    color: var(--color-text-muted);
+  }
+
+  .prose :global(ul),
+  .prose :global(ol) {
+    padding-inline-start: var(--space-5);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+
+  .prose :global(blockquote) {
+    border-inline-start: 2px solid var(--color-accent-dim);
+    padding-inline-start: var(--space-4);
+    color: var(--color-text-muted);
+  }
+
+  .prose :global(blockquote p) {
+    margin: 0;
+  }
+
+  .related {
+    border-block-start: var(--border-width) solid var(--color-divider);
+    padding-block-start: var(--space-4);
+  }
+
+  .related-label {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    text-transform: uppercase;
+    letter-spacing: var(--tracking-label);
+    color: var(--color-text-muted);
+  }
+
+  .related ul {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2) var(--space-4);
+    list-style: none;
+    padding: 0;
+    margin-block-start: var(--space-2);
+    font-size: var(--text-sm);
+  }
+</style>

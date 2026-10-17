@@ -1,4 +1,5 @@
 ---
+import CvDownload from './CvDownload.astro';
 import ExternalLink from './ExternalLink.astro';
 import { site } from '../config/site';
 import { toLang, useTranslations } from '../i18n';
@@ -20,14 +21,17 @@ const t = useTranslations(toLang(Astro.currentLocale));
     </li>
   </ul>
 
-  <!-- The call to action is an in-page anchor, so it works with no JS and the
-       journey section is one scroll away rather than another page load. -->
-  <a class="cta" href="#journey">
-    {t('hero.cta.journey')}
-    <span class="cta-arrow" aria-hidden="true">
-      ↓
-    </span>
-  </a>
+  <div class="actions">
+    <!-- The call to action is an in-page anchor, so it works with no JS and the
+         journey section is one scroll away rather than another page load. -->
+    <a class="cta" href="#journey">
+      {t('hero.cta.journey')}
+      <span class="cta-arrow" aria-hidden="true">
+        ↓
+      </span>
+    </a>
+    <CvDownload variant="button" />
+  </div>
 </section>
 
 <style>
@@ -68,11 +72,17 @@ const t = useTranslations(toLang(Astro.currentLocale));
     font-size: var(--text-sm);
   }
 
+  .actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-3);
+    margin-block-start: var(--space-5);
+  }
+
   .cta {
     display: inline-flex;
     align-items: center;
     gap: var(--space-2);
-    margin-block-start: var(--space-5);
     padding: var(--space-3) var(--space-5);
     background: var(--color-accent);
     color: var(--color-on-accent);

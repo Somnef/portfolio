@@ -1,0 +1,58 @@
+---
+import { cvHref } from '../config/site';
+import { toLang, useTranslations } from '../i18n';
+
+interface Props {
+  variant?: 'button' | 'link';
+}
+
+const { variant = 'link' } = Astro.props;
+const lang = toLang(Astro.currentLocale);
+const t = useTranslations(lang);
+---
+
+{/*
+ * Same-origin, so `download` actually works and the file saves rather than
+ * opening in a tab - which is what "download" should do. No target="_blank":
+ * that is for off-site links.
+ *
+ * data-track marks this as an event worth counting if analytics is ever
+ * enabled (see src/lib/analytics.ts). Nothing reads it today, so it costs
+ * no JavaScript.
+ */}
+<a
+  class:list={['cv', variant]}
+  href={cvHref(lang)}
+  download
+  data-track="cv_download"
+  type="application/pdf"
+>
+  {t('cv.download')}
+</a>
+
+<style>
+  .cv {
+    font-family: var(--font-mono);
+    font-size: var(--text-sm);
+  }
+
+  .button {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-3) var(--space-5);
+    border: 1px solid var(--color-border-control);
+    border-radius: var(--radius-md);
+    color: var(--color-text);
+    text-decoration: none;
+    font-weight: var(--weight-strong);
+    transition:
+      border-color var(--duration-fast) var(--ease),
+      color var(--duration-fast) var(--ease);
+  }
+
+  .button:hover {
+    border-color: var(--color-accent);
+    color: var(--color-accent);
+  }
+</style>

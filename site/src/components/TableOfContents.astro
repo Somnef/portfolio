@@ -1,0 +1,73 @@
+---
+import type { MarkdownHeading } from 'astro';
+import { toLang, useTranslations } from '../i18n';
+
+interface Props {
+  headings: MarkdownHeading[];
+  /** Below this many headings a contents list is noise, not navigation. */
+  minHeadings?: number;
+}
+
+const { headings, minHeadings = 3 } = Astro.props;
+const t = useTranslations(toLang(Astro.currentLocale));
+
+// Only h2 and h3: deeper levels make the list longer than the section it
+// describes. Heading ids come from the Markdown processor, so these anchors
+// need no plugin.
+const items = headings.filter((h) => h.depth === 2 || h.depth === 3);
+const show = items.length >= minHeadings;
+---
+
+{show && (
+  <nav class="toc" aria-labelledby="toc-heading">
+    <h2 id="toc-heading">{t('writing.toc')}</h2>
+    <ol>
+      {items.map((h) => (
+        <li data-depth={h.depth}>
+          <a href={`#${h.slug}`}>{h.text}</a>
+        </li>
+      ))}
+    </ol>
+  </nav>
+)}
+
+<style>
+  .toc {
+    border-inline-start: 2px solid var(--color-divider);
+    padding-inline-start: var(--space-4);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+
+  h2 {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    font-weight: var(--weight-normal);
+    text-transform: uppercase;
+    letter-spacing: var(--tracking-label);
+    color: var(--color-text-muted);
+  }
+
+  ol {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    font-size: var(--text-sm);
+  }
+
+  li[data-depth='3'] {
+    padding-inline-start: var(--space-4);
+  }
+
+  a {
+    text-decoration: none;
+  }
+
+  a:hover {
+    text-decoration: underline;
+  }
+</style>
