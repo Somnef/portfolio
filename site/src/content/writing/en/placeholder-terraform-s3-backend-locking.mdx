@@ -1,0 +1,82 @@
+---
+title: Moving a Terraform backend to native S3 locking
+description: >-
+  Placeholder tutorial. Dropping the DynamoDB lock table in favour of S3 native
+  locking, and what to check before you do.
+pubDate: 2026-10-17
+type: tutorial
+tags:
+  - terraform
+  - aws
+  - placeholder
+relatedProjects:
+  - en/ddos-mitigation-aws-terraform
+---
+
+> **This is placeholder text, not a real post.** It exists so the writing
+> pipeline has something to render — code highlighting, the table of contents,
+> reading time, tags and project cross-links. Replace the whole file.
+
+DynamoDB-based state locking is deprecated and slated for removal in a future
+Terraform minor release. S3 can now hold the lock itself, which removes a
+table, an IAM policy and a bill line.
+
+## Before you start
+
+Confirm the Terraform version, because `use_lockfile` is not in older releases:
+
+```bash
+terraform version
+aws s3api get-bucket-versioning --bucket your-state-bucket
+```
+
+Versioning matters more than it looks — the lock is an object, and you want its
+history.
+
+## Changing the backend
+
+The old configuration names a table:
+
+```hcl
+terraform {
+  backend "s3" {
+    bucket         = "your-state-bucket"
+    key            = "env/prod/terraform.tfstate"
+    region         = "eu-west-1"
+    dynamodb_table = "terraform-locks"
+  }
+}
+```
+
+The new one does not:
+
+```hcl
+terraform {
+  backend "s3" {
+    bucket       = "your-state-bucket"
+    key          = "env/prod/terraform.tfstate"
+    region       = "eu-west-1"
+    use_lockfile = true
+  }
+}
+```
+
+Both can be set at once while migrating, which is the supported path when
+several machines still run older Terraform versions.
+
+## Verifying the lock
+
+Hold a lock and look for the object:
+
+```bash
+aws s3api list-objects-v2 \
+  --bucket your-state-bucket \
+  --prefix env/prod/ \
+  --query 'Contents[].Key'
+```
+
+## Cleaning up
+
+Only delete the DynamoDB table once every consumer of the state has moved —
+a stale `dynamodb_table` in someone's checkout will fail loudly, which is the
+good outcome, but it will fail.
