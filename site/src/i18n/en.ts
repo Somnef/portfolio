@@ -54,6 +54,8 @@ const en = {
   'fallback.notice':
     'This entry has not been translated into French yet, so the English version is shown.',
 
+  'link.newTab': '(opens in a new tab)',
+
   'skip.content': 'Skip to content',
 
   'lang.label': 'Language',

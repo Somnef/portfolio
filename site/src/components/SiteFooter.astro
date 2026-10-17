@@ -1,4 +1,6 @@
 ---
+import ExternalLink from './ExternalLink.astro';
+import { site } from '../config/site';
 import { toLang, useTranslations } from '../i18n';
 
 const lang = toLang(Astro.currentLocale);
@@ -11,9 +13,9 @@ const year = new Date().getFullYear();
     <span>
       © {year} {t('site.title')}
     </span>
-    <a href="https://github.com/Somnef" rel="me">
+    <ExternalLink href={site.github} rel="me">
       GitHub
-    </a>
+    </ExternalLink>
   </div>
 </footer>
 

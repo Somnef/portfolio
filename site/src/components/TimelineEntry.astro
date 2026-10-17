@@ -1,6 +1,7 @@
 ---
 import { render } from 'astro:content';
 import { getRelativeLocaleUrl } from 'astro:i18n';
+import ExternalLink from './ExternalLink.astro';
 import FallbackNotice from './FallbackNotice.astro';
 import { formatMonthYear, toLang, useTranslations } from '../i18n';
 import { resolveReference, type Localized } from '../lib/content';
@@ -49,7 +50,9 @@ const projectsHref = getRelativeLocaleUrl(lang, '/projects/');
       <h3>{data.title}</h3>
       <span class="org">
         {data.organizationUrl ? (
-          <a href={data.organizationUrl}>{data.organization}</a>
+          <ExternalLink href={data.organizationUrl} icon={false}>
+            {data.organization}
+          </ExternalLink>
         ) : (
           data.organization
         )}
@@ -87,7 +90,7 @@ const projectsHref = getRelativeLocaleUrl(lang, '/projects/');
 
       {data.credentialUrl && (
         <p class="credential">
-          <a href={data.credentialUrl}>{t('journey.credential')}</a>
+          <ExternalLink href={data.credentialUrl}>{t('journey.credential')}</ExternalLink>
         </p>
       )}
     </div>

@@ -1,4 +1,5 @@
 ---
+import ExternalLink from './ExternalLink.astro';
 import { site } from '../config/site';
 import { toLang, useTranslations } from '../i18n';
 
@@ -12,10 +13,10 @@ const t = useTranslations(toLang(Astro.currentLocale));
 
   <ul class="links">
     <li>
-      <a href={site.github}>GitHub</a>
+      <ExternalLink href={site.github}>GitHub</ExternalLink>
     </li>
     <li>
-      <a href={site.linkedin}>LinkedIn</a>
+      <ExternalLink href={site.linkedin}>LinkedIn</ExternalLink>
     </li>
   </ul>
 

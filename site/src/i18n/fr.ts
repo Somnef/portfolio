@@ -52,6 +52,8 @@ const fr: UIStrings = {
   'fallback.notice':
     "Cette entrée n'est pas encore traduite en français : la version anglaise est affichée.",
 
+  'link.newTab': '(ouvre dans un nouvel onglet)',
+
   'skip.content': 'Aller au contenu',
 
   'lang.label': 'Langue',

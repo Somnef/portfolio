@@ -1,5 +1,6 @@
 ---
 import { getRelativeLocaleUrl } from 'astro:i18n';
+import ExternalLink from './ExternalLink.astro';
 import FallbackNotice from './FallbackNotice.astro';
 import { formatMonthYear, toLang, useTranslations } from '../i18n';
 import type { Localized } from '../lib/content';
@@ -77,7 +78,7 @@ const links = (Object.keys(linkLabels) as (keyof typeof linkLabels)[])
         )}
         {links.map((l) => (
           <li>
-            <a href={l.href}>{l.label}</a>
+            <ExternalLink href={l.href}>{l.label}</ExternalLink>
           </li>
         ))}
       </ul>
