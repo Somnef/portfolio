@@ -75,6 +75,36 @@ export default defineConfig({
     },
   ],
 
+  /*
+   * Nothing inline, so the Content-Security-Policy can be a plain
+   * script-src 'self'; style-src 'self' with no hashes and no meta tag.
+   *
+   * Astro otherwise inlines small hoisted <script> blocks and small
+   * stylesheets straight into the HTML, which a strict CSP would block unless
+   * every one of their sha256 hashes were tracked in the header. Keeping the
+   * output external moves that problem out of existence.
+   *
+   * Astro 7 does offer security.csp, which emits a <meta http-equiv> CSP with
+   * the hashes computed for you - but the CSP for this site is a CloudFront
+   * response header (one source of truth shared with the local preview
+   * server), and frame-ancestors is ignored in a meta CSP, so the header has
+   * to carry it regardless. Two overlapping policies would then both be
+   * enforced. External files avoid all of it.
+   *
+   * Cost: small assets are no longer inlined as data URIs, so they become
+   * separate requests. With immutable caching on hashed filenames that is a
+   * fair trade, and arguably better for caching.
+   */
+  build: {
+    inlineStylesheets: 'never',
+  },
+
+  vite: {
+    build: {
+      assetsInlineLimit: 0,
+    },
+  },
+
   markdown: {
     shikiConfig: {
       // Token colours come from github-dark; its background is overridden in
