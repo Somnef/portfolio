@@ -3,9 +3,10 @@ import { defineConfig, fontProviders } from 'astro/config';
 import mdx from '@astrojs/mdx';
 
 export default defineConfig({
-  // Placeholder until a domain is chosen; drives canonical URLs and the
-  // sitemap. The infra `domain_name` variable stays null until then.
-  site: 'https://example.com',
+  // Drives canonical URLs, hreflang alternates and the RSS feed's absolute
+  // links. Terraform's `domain_name` variable must match this value, since
+  // that is what provisions the ACM certificate and the Route 53 records.
+  site: 'https://moncefbousselat.com',
   output: 'static',
 
   integrations: [mdx()],

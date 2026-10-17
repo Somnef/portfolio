@@ -9,6 +9,11 @@ import { byDateDesc, getLocalized } from '../lib/content';
  */
 export const GET: APIRoute = async (context) => {
   const t = useTranslations(defaultLang);
+  // A feed carries absolute URLs, and feed readers cache them - so a missing
+  // `site` should fail the build rather than silently emit wrong links.
+  const { site } = context;
+  if (!site) throw new Error('astro.config.mjs must set `site` to build the RSS feed');
+
   const posts = (await getLocalized('writing', defaultLang)).sort(byDateDesc);
 
   return rss({
@@ -16,7 +21,7 @@ export const GET: APIRoute = async (context) => {
     description: t('writing.feedDescription'),
     // The site URL comes from astro.config.mjs, so the feed carries absolute
     // links without hardcoding a domain here.
-    site: context.site ?? 'https://example.com',
+    site,
     items: posts.map((item) => ({
       title: item.entry.data.title,
       description: item.entry.data.description,
