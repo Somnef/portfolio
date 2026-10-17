@@ -1,0 +1,47 @@
+# --- Agent / planning artifacts (never committed) ---
+portfolio-brief.md
+PLAN.md
+CLAUDE.md
+.claude/
+
+# --- Node ---
+node_modules/
+*.log
+npm-debug.log*
+.npm/
+
+# --- Astro ---
+site/dist/
+site/.astro/
+.astro/
+
+# --- Env / secrets ---
+.env
+.env.*
+!.env.example
+
+# --- Terraform ---
+**/.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+tfplan
+crash.log
+crash.*.log
+*.tfvars
+*.tfvars.json
+!*.tfvars.example
+
+# --- Build / test output ---
+api/contact/dist/
+*.zip
+test-results/
+playwright-report/
+blob-report/
+.playwright/
+
+# --- OS / editor ---
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

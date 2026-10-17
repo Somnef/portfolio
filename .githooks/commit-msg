@@ -1,0 +1,30 @@
+#!/bin/sh
+#
+# Strip AI-attribution trailers from commit messages.
+#
+# The repository owner is the sole author of every commit here. Claude Code is
+# configured not to add attribution (.claude/settings.json), but that file is
+# git-ignored and a setting can be missed or ignored, so this hook is the
+# backstop that guarantees nothing lands in history.
+#
+# Enable with:  git config core.hooksPath .githooks
+
+set -eu
+
+msg_file="${1:-}"
+[ -n "$msg_file" ] && [ -f "$msg_file" ] || exit 0
+
+filtered="$(
+  grep -vEi \
+    -e '^[[:space:]]*co-authored-by:' \
+    -e '^[[:space:]]*co-committed-by:' \
+    -e '^[[:space:]]*claude-session:' \
+    -e '^[[:space:]]*(.*[[:space:]])?generated with ' \
+    "$msg_file" || true
+)"
+
+# The command substitution above also drops any trailing blank lines that
+# removing a trailer block left behind.
+printf '%s\n' "$filtered" > "$msg_file"
+
+exit 0
