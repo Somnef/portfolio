@@ -1,0 +1,17 @@
+# Git-ignored working documents: not governed by repo formatting rules.
+portfolio-brief.md
+PLAN.md
+CLAUDE.md
+
+node_modules/
+site/dist/
+site/.astro/
+package-lock.json
+.tool-versions
+
+# Generated: written by scripts/gen-headers.mjs
+config/headers.json
+
+# Terraform has its own formatter (terraform fmt)
+*.tf
+*.tfvars

@@ -1,0 +1,19 @@
+# Normalise to LF in the repo. This machine is WSL with Windows tools on PATH,
+# so without this a Windows editor can introduce CRLF and break shell scripts
+# and the committed git hook.
+* text=auto eol=lf
+
+*.sh text eol=lf
+.githooks/* text eol=lf
+
+# Binary assets: never touch them.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.webp binary
+*.avif binary
+*.ico binary
+*.pdf binary
+*.woff binary
+*.woff2 binary
+*.zip binary
