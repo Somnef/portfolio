@@ -11,6 +11,24 @@ export default defineConfig({
   integrations: [mdx()],
 
   /*
+   * English is the default and is served unprefixed at /; French lives under
+   * /fr/. prefixDefaultLocale stays false so the canonical English URLs have
+   * no /en/ segment.
+   *
+   * Astro's i18n routing does NOT fall back automatically here: a missing
+   * French page would 404. The brief wants the English content rendered at the
+   * French URL with a notice instead, so that fallback is handled in the
+   * content layer when collections land, not by routing config.
+   */
+  i18n: {
+    locales: ['en', 'fr'],
+    defaultLocale: 'en',
+    routing: {
+      prefixDefaultLocale: false,
+    },
+  },
+
+  /*
    * Fonts are self-hosted. The google provider downloads the files at BUILD
    * time and serves them from our own origin, so the browser never calls
    * fonts.googleapis.com or fonts.gstatic.com at runtime - which is what lets
