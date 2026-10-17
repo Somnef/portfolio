@@ -1,0 +1,44 @@
+---
+title: DDoS mitigation on AWS with Terraform
+summary: >-
+  A Terraform-provisioned AWS stack that absorbed a 20,000-agent denial-of-service
+  attack while holding CPU below 50%, with a dashboard reading CloudWatch metrics live.
+category: cloud
+tech:
+  - Terraform
+  - AWS
+  - Amazon EC2
+  - Amazon CloudWatch
+  - JADE
+  - Java
+  - Vue
+date: 2024-10-17
+status: completed
+featured: true
+detailPage: true
+links:
+  repo: https://github.com/Somnef/d7001d-lab4
+---
+
+Two halves that had to be built against each other: something to generate a
+credible attack, and infrastructure that survives it.
+
+## The attack side
+
+JADE agents, distributed across EC2 instances, spawning over 20,000 attacking
+instances in under 30 seconds against a target server. Scale was the point —
+a handful of request loops proves nothing about autoscaling behaviour.
+
+## The defending side
+
+The target infrastructure is defined entirely in Terraform, so each run started
+from an identical baseline and the only variable was the attack. Under sustained
+load the stack scaled out and held CPU utilisation below 50%.
+
+## Watching it happen
+
+Reading autoscaling behaviour from the AWS console during a 30-second attack is
+impractical, so a small Vue front end pulls CloudWatch metrics for the targeted
+instances through the AWS SDK and plots them as the attack runs.
+
+{/* TODO: expand with the Terraform module layout and a metrics screenshot. */}
