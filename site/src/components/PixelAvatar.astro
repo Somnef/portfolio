@@ -9,13 +9,19 @@
  * governs style attributes as well as <style> elements (PLAN.md 3.5c), and
  * define:vars compiles to exactly such an attribute. The defaults below
  * mirror site/src/config/avatar.json; the island overrides them from that file
- * at runtime, which is also what makes a config change take effect without
- * touching CSS.
+ * at runtime, which is what lets a config change take effect without touching
+ * CSS.
+ *
+ * Two nested elements on purpose: the outer one owns position, the inner one
+ * owns the mirror. Mixing both on a single element is what broke the
+ * scroll-up direction once already - see the comment on .sprite.
  */
 ---
 
 <div class="avatar-anchor" aria-hidden="true">
-  <div class="avatar" data-avatar data-mode="idle" data-facing="down"></div>
+  <div class="avatar" data-avatar data-mode="idle" data-facing="down">
+    <div class="sprite"></div>
+  </div>
 </div>
 
 <style>
@@ -28,10 +34,18 @@
     position: sticky;
     inset-block-start: 38vh;
     block-size: 0;
-    z-index: 1;
     pointer-events: none;
+
+    /*
+     * Deliberately no z-index. The anchor precedes the entries in the DOM, so
+     * entry text paints over the sprite rather than under it. The geometry
+     * should keep them apart anyway, but this is decorative art and readable
+     * content wins any argument between them - defence in depth for exactly
+     * the overlap bug the facing-up transform caused.
+     */
   }
 
+  /* Position only. Never transformed, so nothing can move it sideways. */
   .avatar {
     /* Defaults mirroring avatar.json, used before (or without) script. */
     --frame-w: 32px;
@@ -48,6 +62,22 @@
 
     inline-size: calc(var(--frame-w) * var(--avatar-scale));
     block-size: calc(var(--frame-h) * var(--avatar-scale));
+  }
+
+  /*
+   * Paint and mirror only, inside the box the parent positions.
+   *
+   * The mirror lives here rather than on .avatar because scale: -1 flips an
+   * element about its own centre and so does NOT move it - which means the
+   * -50% centring above needs no compensation. A previous version "corrected"
+   * for the flip by switching translate to +50%, which shifted the sprite a
+   * full sprite width to the right, over the text, every time the reader
+   * scrolled up. Keeping position and mirror on separate elements makes that
+   * class of mistake impossible rather than merely fixed.
+   */
+  .sprite {
+    inline-size: 100%;
+    block-size: 100%;
 
     /* Nearest-neighbour: anything else turns pixel art into mush. */
     image-rendering: pixelated;
@@ -55,18 +85,13 @@
     background-image: var(--sprite-sheet);
     background-repeat: no-repeat;
     background-position: 0 0;
-    background-size: calc(var(--frame-w) * var(--avatar-scale) * var(--sprite-frames))
-      calc(var(--frame-h) * var(--avatar-scale));
+    background-size: calc(var(--frame-w) * var(--avatar-scale) * var(--sprite-frames)) 100%;
   }
 
-  /*
-   * The art is drawn facing right and mirrored for upward movement, so only
-   * one set of sheets is ever needed. The translate is restated because
-   * scale: -1 flips the axis the -50% centring acts on.
-   */
-  .avatar[data-facing='up'] {
+  /* The art is drawn facing right and mirrored for upward movement, so only
+     one set of sheets is ever needed. */
+  .avatar[data-facing='up'] .sprite {
     scale: -1 1;
-    translate: 50% 0;
   }
 
   /*
@@ -75,7 +100,7 @@
    * declared at all, and the island never switches to the walk sheet.
    */
   @media (prefers-reduced-motion: no-preference) {
-    .avatar {
+    .sprite {
       animation: sprite var(--sprite-duration) steps(var(--sprite-frames)) infinite;
     }
   }
