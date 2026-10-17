@@ -1,4 +1,5 @@
 ---
+import CvDownload from './CvDownload.astro';
 import ExternalLink from './ExternalLink.astro';
 import { site } from '../config/site';
 import { toLang, useTranslations } from '../i18n';
@@ -13,9 +14,12 @@ const year = new Date().getFullYear();
     <span>
       © {year} {t('site.title')}
     </span>
-    <ExternalLink href={site.github} rel="me">
-      GitHub
-    </ExternalLink>
+    <span class="links">
+      <CvDownload />
+      <ExternalLink href={site.github} rel="me">
+        GitHub
+      </ExternalLink>
+    </span>
   </div>
 </footer>
 
@@ -36,5 +40,11 @@ const year = new Date().getFullYear();
     font-family: var(--font-mono);
     font-size: var(--text-sm);
     color: var(--color-text-muted);
+  }
+
+  .links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-4);
   }
 </style>
