@@ -1,0 +1,63 @@
+---
+import { Font } from 'astro:assets';
+import { getAbsoluteLocaleUrl } from 'astro:i18n';
+import SiteFooter from '../components/SiteFooter.astro';
+import SiteHeader from '../components/SiteHeader.astro';
+import { languages, defaultLang, pathWithoutLocale, toLang, useTranslations } from '../i18n';
+import '../styles/tokens.css';
+import '../styles/global.css';
+
+interface Props {
+  title: string;
+  description: string;
+}
+
+const { title, description } = Astro.props;
+
+const lang = toLang(Astro.currentLocale);
+const t = useTranslations(lang);
+
+const basePath = pathWithoutLocale(Astro.url);
+const canonical = new URL(Astro.url.pathname, Astro.site);
+
+// Every page advertises all of its locale variants, plus x-default pointing at
+// the default locale, so search engines pair them instead of treating the
+// translations as duplicate content.
+const alternates = (Object.keys(languages) as (keyof typeof languages)[]).map((code) => ({
+  code,
+  href: getAbsoluteLocaleUrl(code, basePath),
+}));
+---
+
+<!doctype html>
+<html lang={lang}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonical} />
+    {alternates.map(({ code, href }) => (
+      <link rel="alternate" hreflang={code} href={href} />
+    ))}
+    <link rel="alternate" hreflang="x-default" href={getAbsoluteLocaleUrl(defaultLang, basePath)} />
+    <meta name="generator" content={Astro.generator} />
+    <!-- Self-hosted @font-face. Deliberately not preloaded; see the fonts
+         block in astro.config.mjs for why. -->
+    <Font cssVariable="--font-sans" />
+    <Font cssVariable="--font-mono" />
+    <!-- Open Graph, Twitter cards and the default OG image land in the SEO
+         pass; canonical, description and hreflang are here so every page has
+         them from the start. -->
+  </head>
+  <body>
+    <a class="skip-link" href="#main">
+      {t('skip.content')}
+    </a>
+    <SiteHeader />
+    <main id="main">
+      <slot />
+    </main>
+    <SiteFooter />
+  </body>
+</html>

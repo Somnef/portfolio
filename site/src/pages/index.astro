@@ -1,0 +1,37 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { toLang, useTranslations } from '../i18n';
+
+// The real hero, timeline and projects arrive in phase 3. This page exists so
+// the base layout, design tokens and i18n routing are verifiable on their own.
+const lang = toLang(Astro.currentLocale);
+const t = useTranslations(lang);
+---
+
+<BaseLayout
+  title={`${t('site.title')} — ${t('site.role')}`}
+  description={`Portfolio of ${t('site.title')}, ${t('site.role')}.`}
+>
+  <section class="hero">
+    <p class="label">Portfolio</p>
+    <h1>{t('site.title')}</h1>
+    <p class="role">{t('site.role')}</p>
+  </section>
+</BaseLayout>
+
+<style>
+  .hero {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    max-width: var(--width-wide);
+    margin-inline: auto;
+    padding: var(--space-9) var(--space-5);
+  }
+
+  .role {
+    font-family: var(--font-mono);
+    color: var(--color-accent);
+    font-size: var(--text-lg);
+  }
+</style>

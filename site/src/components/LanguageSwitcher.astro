@@ -1,0 +1,54 @@
+---
+import { getRelativeLocaleUrl } from 'astro:i18n';
+import { languages, pathWithoutLocale, toLang, useTranslations, type Lang } from '../i18n';
+
+const current = toLang(Astro.currentLocale);
+const basePath = pathWithoutLocale(Astro.url);
+const t = useTranslations(current);
+
+const entries = Object.entries(languages) as [Lang, string][];
+---
+
+<nav class="lang" aria-label={t('lang.label')}>
+  <ul>
+    {entries.map(([code, label]) => (
+      <li>
+        {code === current ? (
+          <span lang={code} aria-current="true" title={t('lang.current')}>
+            {label}
+          </span>
+        ) : (
+          <a lang={code} hreflang={code} href={getRelativeLocaleUrl(code, basePath)}>
+            {label}
+          </a>
+        )}
+      </li>
+    ))}
+  </ul>
+</nav>
+
+<style>
+  ul {
+    display: flex;
+    gap: var(--space-3);
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    font-family: var(--font-mono);
+    font-size: var(--text-sm);
+  }
+
+  /* The active language is marked, not hidden: the brief rules out a switcher
+     that disappears when there is nowhere to switch to. */
+  span[aria-current] {
+    color: var(--color-text-muted);
+  }
+
+  a {
+    text-decoration: none;
+  }
+
+  a:hover {
+    text-decoration: underline;
+  }
+</style>
