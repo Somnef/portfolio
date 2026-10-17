@@ -1,0 +1,68 @@
+---
+import { toLang, useTranslations } from '../i18n';
+
+interface Props {
+  href: string;
+  /** The outbound arrow. Off where a list of links would get noisy. */
+  icon?: boolean;
+  class?: string;
+  /**
+   * Extra rel tokens, merged with noopener rather than replacing it - so a
+   * caller can add rel="me" for identity verification without silently
+   * dropping the security token.
+   */
+  rel?: string;
+}
+
+const { href, icon = true, class: className, rel } = Astro.props;
+
+const relTokens = ['noopener', ...(rel ? rel.split(/\s+/).filter(Boolean) : [])];
+const relValue = [...new Set(relTokens)].join(' ');
+const t = useTranslations(toLang(Astro.currentLocale));
+---
+
+{/*
+ * Every off-site link goes through here so the three things a new tab needs
+ * are never forgotten:
+ *
+ *   target="_blank"  - the new tab itself
+ *   rel="noopener"   - denies the opened page access to window.opener.
+ *                      Browsers imply it for target=_blank now, but stating
+ *                      it keeps the guarantee independent of the browser.
+ *                      Not "noreferrer": the referrer is worth keeping so
+ *                      GitHub's traffic insights attribute visits here.
+ *   a spoken warning - opening a new tab unannounced is a known
+ *                      accessibility failure (WCAG G201). The visually
+ *                      hidden text joins the link's accessible name, so a
+ *                      screen reader says "Repository, opens in a new tab"
+ *                      while sighted users see the arrow instead.
+ */}
+<a href={href} target="_blank" rel={relValue} class:list={['external', className]}>
+  <slot />
+  {icon && (
+    <span class="arrow" aria-hidden="true">
+      ↗
+    </span>
+  )}
+  <span class="visually-hidden">{t('link.newTab')}</span>
+</a>
+
+<style>
+  .external {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.25em;
+  }
+
+  .arrow {
+    font-size: 0.85em;
+    line-height: 1;
+    opacity: 0.7;
+    transition: transform var(--duration-fast) var(--ease);
+  }
+
+  .external:hover .arrow {
+    transform: translate(1px, -1px);
+    opacity: 1;
+  }
+</style>

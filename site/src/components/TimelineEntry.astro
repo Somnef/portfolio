@@ -1,0 +1,332 @@
+---
+import { render } from 'astro:content';
+import { getRelativeLocaleUrl } from 'astro:i18n';
+import ExternalLink from './ExternalLink.astro';
+import FallbackNotice from './FallbackNotice.astro';
+import { formatMonthYear, toLang, useTranslations } from '../i18n';
+import { resolveReference, type Localized } from '../lib/content';
+
+interface Props {
+  item: Localized<'timeline'>;
+  /** The first entry opens by default, so the page never looks collapsed-shut. */
+  open?: boolean;
+}
+
+const { item, open = false } = Astro.props;
+const { entry, isFallback } = item;
+const data = entry.data;
+
+const lang = toLang(Astro.currentLocale);
+const t = useTranslations(lang);
+
+const { Content } = await render(entry);
+
+const start = formatMonthYear(data.startDate, lang);
+const end = data.endDate ? formatMonthYear(data.endDate, lang) : t('journey.ongoing');
+
+// Resolve project references to the reader's locale, dropping any that no
+// longer resolve (a production-excluded draft, say) rather than rendering a
+// dead link.
+const related = (
+  await Promise.all(data.projects.map((ref) => resolveReference('projects', lang, ref.id)))
+).filter((p): p is NonNullable<typeof p> => p !== undefined);
+
+const projectsHref = getRelativeLocaleUrl(lang, '/projects/');
+---
+
+<li class="entry" data-kind={data.kind}>
+  <div class="rail" aria-hidden="true">
+    <span class="dot"></span>
+  </div>
+
+  <details open={open}>
+    <summary>
+      <span class="meta">
+        <time datetime={data.startDate.toISOString().slice(0, 10)}>{start}</time>
+        <span aria-hidden="true">—</span>
+        <span>{end}</span>
+        <span class="kind">{t(`journey.kind.${data.kind}` as 'journey.kind.work')}</span>
+      </span>
+      <h3>{data.title}</h3>
+      <span class="org">
+        {data.organizationUrl ? (
+          <ExternalLink href={data.organizationUrl} icon={false}>
+            {data.organization}
+          </ExternalLink>
+        ) : (
+          data.organization
+        )}
+        {data.location && <span class="location">· {data.location}</span>}
+      </span>
+      <p class="summary">{data.summary}</p>
+    </summary>
+
+    <div class="body">
+      {isFallback && <FallbackNotice />}
+      <div class="prose">
+        <Content />
+      </div>
+
+      {data.tech.length > 0 && (
+        <ul class="tech" aria-label={t('projects.builtWith')}>
+          {data.tech.map((tech) => (
+            <li>{tech}</li>
+          ))}
+        </ul>
+      )}
+
+      {related.length > 0 && (
+        <div class="related">
+          <span class="related-label">{t('journey.relatedProjects')}</span>
+          <ul>
+            {related.map((p) => (
+              <li>
+                <a href={`${projectsHref}#${p.slug}`}>{p.entry.data.title}</a>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {data.credentialUrl && (
+        <p class="credential">
+          <ExternalLink href={data.credentialUrl}>{t('journey.credential')}</ExternalLink>
+        </p>
+      )}
+    </div>
+  </details>
+</li>
+
+<style>
+  .entry {
+    display: grid;
+    grid-template-columns: var(--rail-width) 1fr;
+    gap: 0 var(--space-4);
+  }
+
+  /* The rail is one continuous line made of per-entry segments, so the last
+     entry's segment is trimmed to stop the line dangling past the end. */
+  .rail {
+    position: relative;
+    display: flex;
+    justify-content: center;
+  }
+
+  .rail::before {
+    content: '';
+    position: absolute;
+    inset-block: 0;
+    inline-size: 1px;
+    background: var(--color-divider);
+  }
+
+  .entry:last-child .rail::before {
+    inset-block-end: auto;
+    block-size: var(--space-6);
+  }
+
+  .dot {
+    position: relative;
+    margin-block-start: 0.45rem;
+    inline-size: 7px;
+    block-size: 7px;
+    border-radius: 50%;
+    background: var(--color-accent-dim);
+    flex: none;
+  }
+
+  /* Current roles are the ones worth spotting first. */
+  .entry[data-kind='work'] .dot {
+    background: var(--color-accent);
+  }
+
+  details {
+    padding-block-end: var(--space-6);
+    min-width: 0;
+  }
+
+  summary {
+    cursor: pointer;
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+  }
+
+  summary::-webkit-details-marker {
+    display: none;
+  }
+
+  /* The whole summary is the control, so the focus ring belongs on it. */
+  summary:focus-visible {
+    outline: var(--focus-width) solid var(--color-focus);
+    outline-offset: var(--focus-offset);
+  }
+
+  .meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2);
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--color-accent-dim);
+  }
+
+  .kind {
+    color: var(--color-text-muted);
+    border: 1px solid var(--color-divider);
+    border-radius: var(--radius-sm);
+    padding: 0.05rem 0.3rem;
+    letter-spacing: 0.08em;
+  }
+
+  h3 {
+    font-size: var(--text-lg);
+    display: flex;
+    align-items: baseline;
+    gap: var(--space-2);
+  }
+
+  /* A chevron that turns, as the only open/closed affordance. */
+  h3::after {
+    content: '';
+    inline-size: 0.4em;
+    block-size: 0.4em;
+    border-inline-end: 1.5px solid var(--color-text-muted);
+    border-block-end: 1.5px solid var(--color-text-muted);
+    transform: rotate(45deg);
+    transition: transform var(--duration-base) var(--ease);
+    flex: none;
+  }
+
+  details[open] h3::after {
+    transform: rotate(-135deg);
+  }
+
+  summary:hover h3 {
+    color: var(--color-accent);
+  }
+
+  summary:hover h3::after {
+    border-color: var(--color-accent);
+  }
+
+  .org {
+    font-size: var(--text-sm);
+    color: var(--color-text);
+  }
+
+  .org a {
+    color: inherit;
+    text-decoration-color: var(--color-divider);
+  }
+
+  .org a:hover {
+    color: var(--color-accent);
+  }
+
+  .location {
+    color: var(--color-text-muted);
+  }
+
+  .summary {
+    color: var(--color-text-muted);
+    font-size: var(--text-sm);
+    margin-block-start: var(--space-1);
+  }
+
+  .body {
+    padding-block-start: var(--space-4);
+  }
+
+  .prose :global(p) {
+    color: var(--color-text-muted);
+    font-size: var(--text-sm);
+    margin-block-end: var(--space-3);
+  }
+
+  .prose :global(ul) {
+    color: var(--color-text-muted);
+    font-size: var(--text-sm);
+    padding-inline-start: var(--space-5);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+
+  .prose :global(strong) {
+    color: var(--color-text);
+    font-weight: var(--weight-strong);
+  }
+
+  .tech {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    list-style: none;
+    padding: 0;
+    margin-block-start: var(--space-4);
+  }
+
+  .tech li {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    color: var(--color-text-muted);
+    border: 1px solid var(--color-divider);
+    border-radius: var(--radius-sm);
+    padding: 0.1rem 0.4rem;
+  }
+
+  .related,
+  .credential {
+    margin-block-start: var(--space-4);
+  }
+
+  .related-label {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    text-transform: uppercase;
+    letter-spacing: var(--tracking-label);
+    color: var(--color-text-muted);
+  }
+
+  .related ul {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2) var(--space-4);
+    list-style: none;
+    padding: 0;
+    margin-block-start: var(--space-2);
+    font-size: var(--text-sm);
+  }
+
+  .credential {
+    font-family: var(--font-mono);
+    font-size: var(--text-sm);
+  }
+
+  /*
+   * Opening and closing animates where the browser supports it. Guarded by
+   * @supports because ::details-content plus interpolate-size is recent; where
+   * it is missing, entries simply open instantly, which is the correct
+   * degradation rather than a broken transition.
+   */
+  @supports (interpolate-size: allow-keywords) {
+    @media (prefers-reduced-motion: no-preference) {
+      details::details-content {
+        block-size: 0;
+        overflow: hidden;
+        transition:
+          block-size var(--duration-base) var(--ease),
+          content-visibility var(--duration-base) allow-discrete;
+      }
+
+      details[open]::details-content {
+        block-size: auto;
+      }
+    }
+  }
+</style>

@@ -1,0 +1,243 @@
+---
+import { getRelativeLocaleUrl } from 'astro:i18n';
+import ExternalLink from './ExternalLink.astro';
+import FallbackNotice from './FallbackNotice.astro';
+import { formatMonthYear, toLang, useTranslations } from '../i18n';
+import type { Localized } from '../lib/content';
+
+interface Props {
+  item: Localized<'projects'>;
+}
+
+const { item } = Astro.props;
+const { entry, slug, isFallback } = item;
+const data = entry.data;
+
+const lang = toLang(Astro.currentLocale);
+const t = useTranslations(lang);
+
+const linkLabels = {
+  repo: t('projects.link.repo'),
+  demo: t('projects.link.demo'),
+  article: t('projects.link.article'),
+  other: t('projects.link.other'),
+} as const;
+
+const links = (Object.keys(linkLabels) as (keyof typeof linkLabels)[])
+  .map((key) => ({ key, href: data.links[key], label: linkLabels[key] }))
+  .filter((l): l is { key: keyof typeof linkLabels; href: string; label: string } =>
+    Boolean(l.href),
+  );
+---
+
+{/*
+ * One <dialog> serves both behaviours, so the content exists once.
+ *
+ * No JS: a bare <dialog> is display:none, which would make #<slug> a dead
+ *   link. The :target:not([open]) rule below reveals it as a static panel
+ *   instead, so deep links work with scripting off.
+ * With JS: the island calls showModal(), which sets [open] - that disables
+ *   the :target rule and the modal styles take over, bringing a real focus
+ *   trap and Esc handling from the platform.
+ */}
+<dialog id={slug} class="panel" aria-labelledby={`${slug}-title`}>
+  <article>
+    <header>
+      <span class="meta">
+        <time datetime={data.date.toISOString().slice(0, 10)}>
+          {formatMonthYear(data.date, lang)}
+        </time>
+        <span class="status">
+          {t(`projects.status.${data.status}` as 'projects.status.active')}
+        </span>
+      </span>
+      <h3 id={`${slug}-title`}>{data.title}</h3>
+    </header>
+
+    {isFallback && <FallbackNotice />}
+
+    <p class="summary">{data.summary}</p>
+
+    <div class="tech">
+      <span class="tech-label">{t('projects.builtWith')}</span>
+      <ul>
+        {data.tech.map((tech) => (
+          <li>{tech}</li>
+        ))}
+      </ul>
+    </div>
+
+    {(links.length > 0 || data.detailPage) && (
+      <ul class="links">
+        {data.detailPage && (
+          <li>
+            <a class="primary" href={getRelativeLocaleUrl(lang, `/projects/${slug}/`)}>
+              {t('projects.readMore')}
+            </a>
+          </li>
+        )}
+        {links.map((l) => (
+          <li>
+            <ExternalLink href={l.href}>{l.label}</ExternalLink>
+          </li>
+        ))}
+      </ul>
+    )}
+
+    <!--
+      Closing with no JS means clearing the :target, so this is a real link
+      back to the card. The island intercepts it and calls close() instead.
+    -->
+    <a class="close" href={`#${slug}-card`} data-close={slug}>
+      <span aria-hidden="true">×</span>
+      <span class="visually-hidden">{t('projects.close')}</span>
+    </a>
+  </article>
+</dialog>
+
+<style>
+  .panel {
+    color: var(--color-text);
+    background: var(--color-surface-raised);
+    border: var(--border-width) solid var(--color-border-control);
+    border-radius: var(--radius-md);
+    padding: 0;
+    max-inline-size: min(40rem, calc(100vw - 2 * var(--space-5)));
+  }
+
+  article {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    padding: var(--space-5);
+  }
+
+  /* --- no-JS fallback: a static panel revealed by the URL hash ----------- */
+  .panel:target:not([open]) {
+    display: block;
+    position: static;
+    margin-block: var(--space-5);
+    inline-size: 100%;
+  }
+
+  /* --- enhanced: a real modal ------------------------------------------- */
+  .panel[open] {
+    position: fixed;
+    margin: auto;
+  }
+
+  .panel::backdrop {
+    background: rgb(0 0 0 / 0.7);
+  }
+
+  header {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+    padding-inline-end: var(--space-6);
+  }
+
+  .meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-3);
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--color-accent-dim);
+  }
+
+  .status {
+    color: var(--color-text-muted);
+  }
+
+  h3 {
+    font-size: var(--text-xl);
+  }
+
+  .summary {
+    color: var(--color-text-muted);
+    font-size: var(--text-sm);
+  }
+
+  .tech {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+
+  .tech-label {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    text-transform: uppercase;
+    letter-spacing: var(--tracking-label);
+    color: var(--color-text-muted);
+  }
+
+  .tech ul {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  .tech li {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    color: var(--color-text-muted);
+    border: 1px solid var(--color-divider);
+    border-radius: var(--radius-sm);
+    padding: 0.1rem 0.4rem;
+  }
+
+  .links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-3);
+    list-style: none;
+    padding: 0;
+    margin-block-start: var(--space-2);
+    font-family: var(--font-mono);
+    font-size: var(--text-sm);
+  }
+
+  .links .primary {
+    display: inline-block;
+    background: var(--color-accent);
+    color: var(--color-on-accent);
+    padding: var(--space-2) var(--space-4);
+    border-radius: var(--radius-sm);
+    text-decoration: none;
+    font-weight: var(--weight-strong);
+  }
+
+  .links .primary:hover {
+    background: var(--color-accent-dim);
+    color: var(--color-text);
+  }
+
+  .close {
+    position: absolute;
+    inset-block-start: var(--space-3);
+    inset-inline-end: var(--space-3);
+    display: grid;
+    place-items: center;
+    inline-size: 2rem;
+    block-size: 2rem;
+    font-size: var(--text-lg);
+    line-height: 1;
+    color: var(--color-text-muted);
+    text-decoration: none;
+    border: 1px solid var(--color-border-control);
+    border-radius: var(--radius-sm);
+  }
+
+  .close:hover {
+    color: var(--color-text);
+    border-color: var(--color-accent);
+  }
+</style>

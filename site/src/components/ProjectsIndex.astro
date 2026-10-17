@@ -1,0 +1,159 @@
+---
+import ProjectCard from './ProjectCard.astro';
+import ProjectPanel from './ProjectPanel.astro';
+import { toLang, useTranslations } from '../i18n';
+import { byDateDesc, getLocalized, type Localized } from '../lib/content';
+
+const lang = toLang(Astro.currentLocale);
+const t = useTranslations(lang);
+
+const all = (await getLocalized('projects', lang)).sort(byDateDesc);
+
+/*
+ * Cloud leads; the rest are grouped after it. Rendered as real sections with
+ * headings rather than JavaScript tabs, so grouping works with scripting off
+ * and each group is linkable.
+ *
+ * Empty categories are dropped, so `development` simply does not appear until
+ * there is something in it.
+ */
+const order = ['cloud', 'data-ai', 'development'] as const;
+
+const groups = order
+  .map((category) => ({
+    category,
+    label: t(`projects.category.${category}` as 'projects.category.cloud'),
+    items: all.filter((p) => p.entry.data.category === category),
+  }))
+  .filter((g) => g.items.length > 0);
+
+const panels: Localized<'projects'>[] = all;
+---
+
+<section class="projects" aria-labelledby="projects-heading">
+  <header class="intro">
+    <h1 id="projects-heading">{t('projects.heading')}</h1>
+    <p>{t('projects.intro')}</p>
+
+    {groups.length > 1 && (
+      <ul class="jump">
+        {groups.map((g) => (
+          <li>
+            <a href={`#category-${g.category}`}>
+              {g.label} <span class="count">{g.items.length}</span>
+            </a>
+          </li>
+        ))}
+      </ul>
+    )}
+  </header>
+
+  {groups.map((g) => (
+    <section
+      id={`category-${g.category}`}
+      class="group"
+      data-category={g.category}
+      aria-labelledby={`heading-${g.category}`}
+    >
+      <h2 id={`heading-${g.category}`}>{g.label}</h2>
+      <ul class="grid">
+        {g.items.map((item) => (
+          <ProjectCard item={item} />
+        ))}
+      </ul>
+    </section>
+  ))}
+
+  {/*
+   * Panels live outside the grid so revealing one with :target does not
+   * disturb the card layout. Each is a <dialog> that doubles as a static
+   * panel; see ProjectPanel.astro.
+   */}
+  <div class="panels">
+    {panels.map((item) => (
+      <ProjectPanel item={item} />
+    ))}
+  </div>
+</section>
+
+<script>
+  import '../islands/project-modal';
+</script>
+
+<style>
+  .projects {
+    padding-block: var(--space-7) var(--space-8);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-7);
+  }
+
+  .intro {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+  }
+
+  .intro p {
+    color: var(--color-text-muted);
+  }
+
+  .jump {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2) var(--space-4);
+    list-style: none;
+    padding: 0;
+    margin-block-start: var(--space-2);
+    font-family: var(--font-mono);
+    font-size: var(--text-sm);
+  }
+
+  .jump a {
+    text-decoration: none;
+    border-block-end: 1px solid transparent;
+  }
+
+  .jump a:hover {
+    border-block-end-color: var(--color-accent);
+  }
+
+  .count {
+    color: var(--color-text-muted);
+  }
+
+  .group {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    scroll-margin-block-start: var(--space-5);
+  }
+
+  .group h2 {
+    font-size: var(--text-lg);
+    color: var(--color-text-muted);
+    font-weight: var(--weight-normal);
+    padding-block-end: var(--space-2);
+    border-block-end: var(--border-width) solid var(--color-divider);
+  }
+
+  /* The primary group gets the accent heading; later groups stay quiet, which
+     is what makes them read as secondary without hiding them. */
+  .group[data-category='cloud'] h2 {
+    color: var(--color-text);
+    border-block-end-color: var(--color-border-control);
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr));
+    gap: var(--space-4);
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  .panels {
+    display: contents;
+  }
+</style>

@@ -1,0 +1,101 @@
+---
+import ExternalLink from './ExternalLink.astro';
+import { site } from '../config/site';
+import { toLang, useTranslations } from '../i18n';
+
+const t = useTranslations(toLang(Astro.currentLocale));
+---
+
+<section class="hero">
+  <h1>{t('site.title')}</h1>
+  <p class="role">{t('site.role')}</p>
+  <p class="tagline">{t('site.tagline')}</p>
+
+  <ul class="links">
+    <li>
+      <ExternalLink href={site.github}>GitHub</ExternalLink>
+    </li>
+    <li>
+      <ExternalLink href={site.linkedin}>LinkedIn</ExternalLink>
+    </li>
+  </ul>
+
+  <!-- The call to action is an in-page anchor, so it works with no JS and the
+       journey section is one scroll away rather than another page load. -->
+  <a class="cta" href="#journey">
+    {t('hero.cta.journey')}
+    <span class="cta-arrow" aria-hidden="true">
+      ↓
+    </span>
+  </a>
+</section>
+
+<style>
+  .hero {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-3);
+    padding-block: var(--space-9) var(--space-8);
+  }
+
+  h1 {
+    font-size: clamp(2.125rem, 7vw, var(--text-3xl));
+  }
+
+  .role {
+    font-family: var(--font-mono);
+    font-size: var(--text-lg);
+    color: var(--color-accent);
+    margin: 0;
+  }
+
+  .tagline {
+    color: var(--color-text-muted);
+    font-size: var(--text-lg);
+    max-width: 42ch;
+    margin-block-start: var(--space-2);
+  }
+
+  .links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-4);
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    font-family: var(--font-mono);
+    font-size: var(--text-sm);
+  }
+
+  .cta {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    margin-block-start: var(--space-5);
+    padding: var(--space-3) var(--space-5);
+    background: var(--color-accent);
+    color: var(--color-on-accent);
+    font-family: var(--font-mono);
+    font-size: var(--text-sm);
+    font-weight: var(--weight-strong);
+    border-radius: var(--radius-md);
+    text-decoration: none;
+    transition:
+      background var(--duration-fast) var(--ease),
+      color var(--duration-fast) var(--ease);
+  }
+
+  .cta:hover {
+    background: var(--color-accent-dim);
+    color: var(--color-text);
+  }
+
+  .cta-arrow {
+    transition: transform var(--duration-base) var(--ease);
+  }
+
+  .cta:hover .cta-arrow {
+    transform: translateY(2px);
+  }
+</style>

@@ -12,8 +12,17 @@ const t = useTranslations(lang);
     <a class="home" href={getRelativeLocaleUrl(lang, '/')}>
       {t('site.title')}
     </a>
-    <!-- Section links are added as their pages land, so the link checker
-         never has a dead target to find. -->
+    <nav aria-label={t('nav.label')}>
+      <ul>
+        <li>
+          <a href={`${getRelativeLocaleUrl(lang, '/')}#journey`}>{t('nav.journey')}</a>
+        </li>
+        <li>
+          <a href={getRelativeLocaleUrl(lang, '/projects/')}>{t('nav.projects')}</a>
+        </li>
+      </ul>
+    </nav>
+
     <LanguageSwitcher />
   </div>
 </header>
@@ -43,5 +52,34 @@ const t = useTranslations(lang);
 
   .home:hover {
     color: var(--color-accent);
+  }
+
+  nav ul {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-4);
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    font-family: var(--font-mono);
+    font-size: var(--text-sm);
+  }
+
+  nav a {
+    color: var(--color-text-muted);
+    text-decoration: none;
+  }
+
+  nav a:hover {
+    color: var(--color-accent);
+  }
+
+  /* On a narrow screen the nav drops to its own row rather than squeezing
+     the name and the language switcher. */
+  @media (max-width: 30rem) {
+    nav {
+      order: 3;
+      flex-basis: 100%;
+    }
   }
 </style>

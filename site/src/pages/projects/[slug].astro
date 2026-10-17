@@ -1,0 +1,35 @@
+---
+import type { GetStaticPaths } from 'astro';
+import ProjectDetail from '../../components/ProjectDetail.astro';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { defaultLang } from '../../i18n';
+import { getLocalized, type Localized } from '../../lib/content';
+
+// Only projects that opted in get a page; the rest are card-and-modal only.
+export const getStaticPaths: GetStaticPaths = async () => {
+  const items = await getLocalized('projects', defaultLang);
+  return items
+    .filter((item) => item.entry.data.detailPage)
+    .map((item) => ({ params: { slug: item.slug }, props: { item } }));
+};
+
+interface Props {
+  item: Localized<'projects'>;
+}
+
+const { item } = Astro.props;
+---
+
+<BaseLayout title={item.entry.data.title} description={item.entry.data.summary}>
+  <div class="wrap">
+    <ProjectDetail item={item} />
+  </div>
+</BaseLayout>
+
+<style>
+  .wrap {
+    max-width: var(--width-content);
+    margin-inline: auto;
+    padding-inline: var(--space-5);
+  }
+</style>

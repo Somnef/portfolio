@@ -1,0 +1,189 @@
+---
+import { render } from 'astro:content';
+import { getRelativeLocaleUrl } from 'astro:i18n';
+import ExternalLink from './ExternalLink.astro';
+import FallbackNotice from './FallbackNotice.astro';
+import { formatMonthYear, toLang, useTranslations } from '../i18n';
+import type { Localized } from '../lib/content';
+
+interface Props {
+  item: Localized<'projects'>;
+}
+
+const { item } = Astro.props;
+const { entry, isFallback } = item;
+const data = entry.data;
+
+const lang = toLang(Astro.currentLocale);
+const t = useTranslations(lang);
+const { Content } = await render(entry);
+
+const linkLabels = {
+  repo: t('projects.link.repo'),
+  demo: t('projects.link.demo'),
+  article: t('projects.link.article'),
+  other: t('projects.link.other'),
+} as const;
+
+const links = (Object.keys(linkLabels) as (keyof typeof linkLabels)[])
+  .map((key) => ({ href: data.links[key], label: linkLabels[key] }))
+  .filter((l): l is { href: string; label: string } => Boolean(l.href));
+---
+
+<article class="detail">
+  <nav class="back" aria-label={t('nav.label')}>
+    <a href={getRelativeLocaleUrl(lang, '/projects/')}>
+      <span aria-hidden="true">←</span> {t('projects.heading')}
+    </a>
+  </nav>
+
+  <header>
+    <span class="meta">
+      <time datetime={data.date.toISOString().slice(0, 10)}>
+        {formatMonthYear(data.date, lang)}
+      </time>
+      <span class="status">{t(`projects.status.${data.status}` as 'projects.status.active')}</span>
+      <span class="category">
+        {t(`projects.category.${data.category}` as 'projects.category.cloud')}
+      </span>
+    </span>
+    <h1>{data.title}</h1>
+    <p class="summary">{data.summary}</p>
+  </header>
+
+  {isFallback && <FallbackNotice />}
+
+  <div class="tech">
+    <span class="tech-label">{t('projects.builtWith')}</span>
+    <ul>
+      {data.tech.map((tech) => (
+        <li>{tech}</li>
+      ))}
+    </ul>
+  </div>
+
+  {links.length > 0 && (
+    <ul class="links">
+      {links.map((l) => (
+        <li>
+          <ExternalLink href={l.href}>{l.label}</ExternalLink>
+        </li>
+      ))}
+    </ul>
+  )}
+
+  <div class="prose">
+    <Content />
+  </div>
+</article>
+
+<style>
+  .detail {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    padding-block: var(--space-6) var(--space-8);
+  }
+
+  .back {
+    font-family: var(--font-mono);
+    font-size: var(--text-sm);
+  }
+
+  .back a {
+    text-decoration: none;
+  }
+
+  .back a:hover {
+    text-decoration: underline;
+  }
+
+  header {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+
+  .meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-3);
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--color-accent-dim);
+  }
+
+  .status,
+  .category {
+    color: var(--color-text-muted);
+  }
+
+  h1 {
+    font-size: var(--text-2xl);
+  }
+
+  .summary {
+    color: var(--color-text-muted);
+    font-size: var(--text-lg);
+  }
+
+  .tech {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: var(--space-2) var(--space-3);
+  }
+
+  .tech-label {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    text-transform: uppercase;
+    letter-spacing: var(--tracking-label);
+    color: var(--color-text-muted);
+  }
+
+  .tech ul,
+  .links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  .tech li {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    color: var(--color-text-muted);
+    border: 1px solid var(--color-divider);
+    border-radius: var(--radius-sm);
+    padding: 0.1rem 0.4rem;
+  }
+
+  .links {
+    gap: var(--space-4);
+    font-family: var(--font-mono);
+    font-size: var(--text-sm);
+  }
+
+  .prose {
+    border-block-start: var(--border-width) solid var(--color-divider);
+    padding-block-start: var(--space-5);
+    margin-block-start: var(--space-2);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+  }
+
+  .prose :global(h2) {
+    font-size: var(--text-lg);
+    margin-block-start: var(--space-3);
+  }
+
+  .prose :global(p) {
+    color: var(--color-text-muted);
+  }
+</style>

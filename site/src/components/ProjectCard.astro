@@ -1,0 +1,147 @@
+---
+import { toLang, useTranslations } from '../i18n';
+import type { Localized } from '../lib/content';
+
+interface Props {
+  item: Localized<'projects'>;
+}
+
+const { item } = Astro.props;
+const { entry, slug } = item;
+const data = entry.data;
+const t = useTranslations(toLang(Astro.currentLocale));
+---
+
+<li class="card" id={`${slug}-card`}>
+  <article>
+    <h3>
+      <!--
+        A real href to the panel, so the card works as a link with no JS and
+        is shareable. The island upgrades the click into a dialog.
+      -->
+      <a class="card-link" href={`#${slug}`} data-project={slug}>
+        {data.title}
+      </a>
+    </h3>
+
+    <p class="summary">{data.summary}</p>
+
+    <ul class="tags" aria-label={t('projects.builtWith')}>
+      {data.tech.slice(0, 4).map((tech) => (
+        <li>{tech}</li>
+      ))}
+      {data.tech.length > 4 && <li class="more">+{data.tech.length - 4}</li>}
+    </ul>
+
+    <footer>
+      <span class="status" data-status={data.status}>
+        {t(`projects.status.${data.status}` as 'projects.status.active')}
+      </span>
+    </footer>
+  </article>
+</li>
+
+<style>
+  .card {
+    display: flex;
+  }
+
+  article {
+    /* Positioned so the card link's ::after can cover the whole card. */
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    inline-size: 100%;
+    background: var(--color-surface);
+    border: var(--border-width) solid var(--color-divider);
+    border-radius: var(--radius-md);
+    padding: var(--space-4);
+    transition: border-color var(--duration-fast) var(--ease);
+  }
+
+  article:hover {
+    border-color: var(--color-border-control);
+  }
+
+  h3 {
+    font-size: var(--text-base);
+  }
+
+  /* The link covers the card, so the whole card is clickable while the
+     accessible name stays just the title. */
+  .card-link {
+    color: var(--color-text);
+    text-decoration: none;
+  }
+
+  .card-link::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+  }
+
+  .card-link:hover {
+    color: var(--color-accent);
+  }
+
+  .summary {
+    color: var(--color-text-muted);
+    font-size: var(--text-sm);
+    flex: 1;
+    max-width: none;
+  }
+
+  .tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  .tags li {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    color: var(--color-text-muted);
+    border: 1px solid var(--color-divider);
+    border-radius: var(--radius-sm);
+    padding: 0.1rem 0.4rem;
+  }
+
+  .more {
+    color: var(--color-accent-dim);
+  }
+
+  footer {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+  }
+
+  .status {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--color-text-muted);
+  }
+
+  .status::before {
+    content: '';
+    inline-size: 5px;
+    block-size: 5px;
+    border-radius: 50%;
+    background: currentcolor;
+  }
+
+  /* Status is encoded in form as well as in the word, so it reads at a
+     glance; only "active" earns the accent. */
+  .status[data-status='active'] {
+    color: var(--color-accent);
+  }
+</style>

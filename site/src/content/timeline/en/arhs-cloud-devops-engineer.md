@@ -5,13 +5,22 @@ location: Luxembourg
 kind: work
 startDate: 2026-01-05
 summary: >-
-  Cloud and DevOps engineering in Luxembourg, building and running infrastructure
-  for client projects.
+  Multi-cloud infrastructure and Kubernetes across several client environments,
+  with Terraform, CI/CD, security controls and observability behind it.
+tech:
+  - AWS
+  - Azure
+  - Kubernetes
+  - Terraform
+  - IAM
+  - WAF
 avatarVariant: engineer
 ---
 
-Current role.
+Designing and operating multi-cloud infrastructure — AWS and Azure — with
+Kubernetes clusters on top, across several client environments at once.
 
-<!-- TODO: replace with the fuller description - responsibilities, the platforms
-     and tooling in play, and anything notable shipped. Add `tech:` to the
-     frontmatter once that is settled. -->
+- **Infrastructure as code** in Terraform, and the automated CI/CD pipelines
+  that deploy it.
+- **Security and compliance controls**, including IAM and WAF.
+- **Observability and autoscaling** for production workloads.
