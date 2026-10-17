@@ -43,6 +43,33 @@ components, styles and content.
 No AWS credentials are needed for local development, and none are needed to run
 any check in this list.
 
+## Troubleshooting
+
+### `Node.js v20.x is not supported by Astro` or `npm error code EBADENGINE`
+
+The shell is running a different Node than the one `.tool-versions` pins.
+Check it:
+
+```sh
+node -v          # must match .tool-versions
+which node       # should be inside your version manager, not /usr/local/bin
+```
+
+If you use asdf, the shims directory must be **prepended** to `PATH` in a file
+every shell reads — `~/.zshenv` for zsh, `~/.bashrc` for bash. Putting it only
+in `~/.zshrc` covers interactive shells but not login or non-interactive ones,
+so editor tasks and scripts silently fall back to whatever Node is on the
+system `PATH`:
+
+```sh
+export ASDF_DATA_DIR="$HOME/.asdf"
+export PATH="$ASDF_DATA_DIR/shims:$PATH"
+```
+
+`engine-strict` is deliberately on in `.npmrc`, so a wrong Node version fails
+at `npm install` with the required and actual versions named, rather than
+surfacing later as a confusing build error.
+
 ## Scripts
 
 Run from the repository root.
