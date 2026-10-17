@@ -52,6 +52,31 @@ const fr: UIStrings = {
   'fallback.notice':
     "Cette entrée n'est pas encore traduite en français : la version anglaise est affichée.",
 
+  'nav.writing': 'Écrits',
+
+  'writing.heading': 'Écrits',
+  'writing.intro': 'Tutoriels, articles et notes plus courtes. Filtrez par type ou par mot-clé.',
+  'writing.type.tutorial': 'Tutoriel',
+  'writing.type.article': 'Article',
+  'writing.type.note': 'Note',
+  'writing.byType': 'Par type',
+  'writing.byTag': 'Par mot-clé',
+  'writing.all': 'Tous les écrits',
+  'writing.minRead': 'min de lecture',
+  'writing.published': 'Publié le',
+  'writing.updated': 'Mis à jour le',
+  'writing.draft': 'Brouillon',
+  'writing.toc': 'Sur cette page',
+  'writing.empty': 'Rien de publié ici pour le moment.',
+  'writing.feed': 'Flux RSS',
+  'writing.feedDescription':
+    "Tutoriels, articles et notes sur l'infrastructure cloud et le DevOps.",
+  'writing.taggedWith': 'Mot-clé',
+  'writing.ofType': 'Type',
+
+  'cv.download': 'Télécharger le CV',
+  'cv.downloadLang': 'CV (français)',
+
   'link.newTab': '(ouvre dans un nouvel onglet)',
 
   'skip.content': 'Aller au contenu',

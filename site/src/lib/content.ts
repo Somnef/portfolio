@@ -139,3 +139,42 @@ export function readingTimeMinutes(body: string | undefined): number {
   const words = prose.split(/\s+/).filter(Boolean).length;
   return Math.max(1, Math.round(words / 200));
 }
+
+/**
+ * URL-safe form of a tag. Tags are authored as human text, so this is what
+ * makes /writing/tag/<slug> stable when a tag gains a capital or a space.
+ */
+export function tagSlug(tag: string): string {
+  return tag
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '');
+}
+
+/** Every tag across the given posts, with counts, most used first. */
+export function collectTags(
+  posts: Localized<'writing'>[],
+): { tag: string; slug: string; count: number }[] {
+  const counts = new Map<string, number>();
+
+  for (const post of posts) {
+    for (const tag of post.entry.data.tags) {
+      counts.set(tag, (counts.get(tag) ?? 0) + 1);
+    }
+  }
+
+  return [...counts.entries()]
+    .map(([tag, count]) => ({ tag, slug: tagSlug(tag), count }))
+    .sort((a, b) => b.count - a.count || a.tag.localeCompare(b.tag));
+}
+
+/** Every post type actually in use, with counts. Empty types are not listed. */
+export function collectTypes(
+  posts: Localized<'writing'>[],
+): { type: 'tutorial' | 'article' | 'note'; count: number }[] {
+  const order = ['tutorial', 'article', 'note'] as const;
+  return order
+    .map((type) => ({ type, count: posts.filter((p) => p.entry.data.type === type).length }))
+    .filter((t) => t.count > 0);
+}

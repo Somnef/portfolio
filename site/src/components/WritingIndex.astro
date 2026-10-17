@@ -1,0 +1,213 @@
+---
+import { getRelativeLocaleUrl } from 'astro:i18n';
+import PostCard from './PostCard.astro';
+import { toLang, useTranslations } from '../i18n';
+import {
+  byDateDesc,
+  collectTags,
+  collectTypes,
+  getLocalized,
+  type Localized,
+} from '../lib/content';
+
+interface Props {
+  /** Pre-filtered posts for a type or tag page; omitted means everything. */
+  posts?: Localized<'writing'>[];
+  /** Shown above the heading on a filtered page, e.g. "Type" or "Tagged". */
+  eyebrow?: string;
+  heading?: string;
+  /** Which filter link is the current page, so it can be marked. */
+  activeType?: string;
+  activeTag?: string;
+}
+
+const lang = toLang(Astro.currentLocale);
+const t = useTranslations(lang);
+
+// Filter links are always built from the full set, so a filtered page still
+// offers every other filter rather than narrowing to a dead end.
+const all = (await getLocalized('writing', lang)).sort(byDateDesc);
+const posts = (Astro.props.posts ?? all).sort(byDateDesc);
+
+const { eyebrow, heading, activeType, activeTag } = Astro.props;
+
+const types = collectTypes(all);
+const tags = collectTags(all);
+
+const writingHref = getRelativeLocaleUrl(lang, '/writing/');
+const isFiltered = Boolean(activeType ?? activeTag);
+---
+
+<section class="writing" aria-labelledby="writing-heading">
+  <header>
+    {eyebrow && <p class="eyebrow">{eyebrow}</p>}
+    <h1 id="writing-heading">{heading ?? t('writing.heading')}</h1>
+    <p class="intro">{t('writing.intro')}</p>
+  </header>
+
+  {/*
+   * Filtering is navigation, not JavaScript: every type and tag has a real
+   * statically generated page, so this works identically with scripting off
+   * and each filtered view is linkable and indexable.
+   */}
+  <nav class="filters" aria-label={t('writing.byType')}>
+    <div class="filter-row">
+      <span class="filter-label">{t('writing.byType')}</span>
+      <ul>
+        <li>
+          <a href={writingHref} aria-current={isFiltered ? undefined : 'page'}>
+            {t('writing.all')}
+          </a>
+        </li>
+        {types.map((ty) => (
+          <li>
+            <a
+              href={getRelativeLocaleUrl(lang, `/writing/type/${ty.type}/`)}
+              aria-current={activeType === ty.type ? 'page' : undefined}
+            >
+              {t(`writing.type.${ty.type}` as 'writing.type.note')}
+              <span class="count">{ty.count}</span>
+            </a>
+          </li>
+        ))}
+      </ul>
+    </div>
+
+    {tags.length > 0 && (
+      <div class="filter-row">
+        <span class="filter-label">{t('writing.byTag')}</span>
+        <ul>
+          {tags.map((tg) => (
+            <li>
+              <a
+                href={getRelativeLocaleUrl(lang, `/writing/tag/${tg.slug}/`)}
+                aria-current={activeTag === tg.slug ? 'page' : undefined}
+              >
+                #{tg.tag}
+                <span class="count">{tg.count}</span>
+              </a>
+            </li>
+          ))}
+        </ul>
+      </div>
+    )}
+  </nav>
+
+  {posts.length > 0 ? (
+    <ul class="posts">
+      {posts.map((item) => (
+        <PostCard item={item} />
+      ))}
+    </ul>
+  ) : (
+    <p class="empty">{t('writing.empty')}</p>
+  )}
+
+  <p class="feed">
+    <a href={getRelativeLocaleUrl(lang, '/rss.xml')}>{t('writing.feed')}</a>
+  </p>
+</section>
+
+<style>
+  .writing {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-6);
+    padding-block: var(--space-7) var(--space-8);
+  }
+
+  header {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+
+  .eyebrow {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    text-transform: uppercase;
+    letter-spacing: var(--tracking-label);
+    color: var(--color-accent-dim);
+  }
+
+  .intro {
+    color: var(--color-text-muted);
+  }
+
+  .filters {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    padding-block: var(--space-4);
+    border-block: var(--border-width) solid var(--color-divider);
+  }
+
+  .filter-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: var(--space-2) var(--space-4);
+  }
+
+  .filter-label {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    text-transform: uppercase;
+    letter-spacing: var(--tracking-label);
+    color: var(--color-text-muted);
+    flex: 0 0 5.5rem;
+  }
+
+  .filters ul {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2) var(--space-4);
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    font-family: var(--font-mono);
+    font-size: var(--text-sm);
+  }
+
+  .filters a {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.35em;
+    text-decoration: none;
+    color: var(--color-text-muted);
+    border-block-end: 1px solid transparent;
+  }
+
+  .filters a:hover {
+    color: var(--color-accent);
+  }
+
+  /* The current filter is marked for everyone, not just announced: colour
+     alone would leave it invisible to anyone who cannot see it. */
+  .filters a[aria-current='page'] {
+    color: var(--color-text);
+    border-block-end-color: var(--color-accent);
+  }
+
+  .count {
+    font-size: var(--text-xs);
+    color: var(--color-accent-dim);
+  }
+
+  .posts {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  .empty {
+    color: var(--color-text-muted);
+    font-family: var(--font-mono);
+    font-size: var(--text-sm);
+  }
+
+  .feed {
+    font-family: var(--font-mono);
+    font-size: var(--text-sm);
+  }
+</style>
