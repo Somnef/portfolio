@@ -49,6 +49,9 @@ function start(avatar: HTMLElement): void {
       const animation = config.animations[mode];
       avatar.dataset.mode = mode;
       avatar.dataset.facing = facing;
+      // Reflected for styling hooks and so the current era is inspectable in
+      // devtools, not just implied by the background URL.
+      avatar.dataset.variant = variant;
       avatar.style.setProperty('--sprite-frames', String(animation.frames));
       avatar.style.setProperty('--sprite-duration', `${animation.durationMs}ms`);
       avatar.style.setProperty('--sprite-sheet', `url('/sprites/${variant}/${mode}.png')`);
