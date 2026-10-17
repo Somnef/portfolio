@@ -15,6 +15,7 @@
   "scripts": {
     "dev": "npm run dev --workspace site",
     "build": "npm run build --workspace site",
+    "sprites": "node scripts/gen-placeholder-sprites.mjs",
     "check": "npm run check --workspace site",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
