@@ -1,16 +1,33 @@
 ---
-// Placeholder entry point. The real hero, layout and design tokens arrive in
-// the next commits of this phase.
-const title = 'Moncef Bousselat — Cloud & DevOps Engineer';
+import BaseLayout from '../layouts/BaseLayout.astro';
+
+// The real hero, timeline and projects arrive in phase 3. This page exists so
+// the base layout and design tokens are verifiable on their own.
+const name = 'Moncef Bousselat';
+const role = 'Cloud & DevOps Engineer';
 ---
 
-<html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>{title}</title>
-  </head>
-  <body>
-    <h1>{title}</h1>
-  </body>
-</html>
+<BaseLayout title={`${name} — ${role}`} description={`Portfolio of ${name}, ${role}.`}>
+  <section class="hero">
+    <p class="label">Portfolio</p>
+    <h1>{name}</h1>
+    <p class="role">{role}</p>
+  </section>
+</BaseLayout>
+
+<style>
+  .hero {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    max-width: var(--width-wide);
+    margin-inline: auto;
+    padding: var(--space-9) var(--space-5);
+  }
+
+  .role {
+    font-family: var(--font-mono);
+    color: var(--color-accent);
+    font-size: var(--text-lg);
+  }
+</style>

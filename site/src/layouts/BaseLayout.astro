@@ -1,0 +1,44 @@
+---
+import { Font } from 'astro:assets';
+import '../styles/tokens.css';
+import '../styles/global.css';
+
+interface Props {
+  title: string;
+  description: string;
+  /** BCP 47 tag for the document. i18n routing sets this per locale. */
+  lang?: string;
+}
+
+const { title, description, lang = 'en' } = Astro.props;
+
+const canonical = new URL(Astro.url.pathname, Astro.site);
+---
+
+<!doctype html>
+<html lang={lang}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonical} />
+    <meta name="generator" content={Astro.generator} />
+    <!-- Self-hosted @font-face. Deliberately not preloaded; see the fonts
+         block in astro.config.mjs for why. -->
+    <Font cssVariable="--font-sans" />
+    <Font cssVariable="--font-mono" />
+    <!-- Open Graph, Twitter cards and the default OG image land in the SEO
+         pass; canonical and description are here so every page has them now. -->
+  </head>
+  <body>
+    <a class="skip-link" href="#main">
+      Skip to content
+    </a>
+    <slot name="header" />
+    <main id="main">
+      <slot />
+    </main>
+    <slot name="footer" />
+  </body>
+</html>
