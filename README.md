@@ -99,11 +99,13 @@ answered by the 404 page, and with the exact security headers, including the
 Content-Security-Policy, that CloudFront sends. A CSP violation therefore
 shows up in the browser console here, before a deploy.
 
-The CSP allows inline styles by hash, and those hashes come from the build.
-`npm run headers` regenerates them; commit the result whenever it changes. CI
-runs `npm run headers:check`, which fails if the committed file is stale, so a
-post that introduces a new syntax-highlighting colour must ship its updated
-headers in the same pull request.
+The CSP allows inline `<style>` blocks by hash, and only the font loader emits
+those, so content never changes the policy. Code highlighting uses classes
+(`site/src/styles/shiki.css`) rather than inline `style=""` attributes, which
+the CSP does not allow and header generation rejects. The hashes change only
+when the font configuration does, or when Google updates the font files:
+`npm run headers` regenerates them, and CI's `npm run headers:check` fails if
+the committed file is stale.
 
 `npm run infra:check` needs Terraform, tflint and trivy (all in
 `.tool-versions`). It reads no state and calls no AWS API.
