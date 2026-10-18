@@ -153,6 +153,11 @@ $EDITOR terraform.tfvars        # git-ignored
 
 **3. Check it locally.** None of these touch AWS:
 
+> `terraform fmt` formats `.tfvars` too, so it will flag your own
+> `terraform.tfvars` once you edit it — the file is git-ignored but not
+> fmt-ignored. Run `terraform fmt infra/bootstrap/terraform.tfvars` to tidy
+> it; the change is alignment only.
+
 ```sh
 terraform fmt -check -recursive
 terraform init -backend=false

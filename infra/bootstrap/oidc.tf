@@ -6,6 +6,12 @@
  * whether this stack owns it or adopts one something else registered, and
  * the rest of the configuration reads local.oidc_provider_arn either way.
  *
+ * It is a one-time decision taken BEFORE the first apply, not a switch to
+ * flip afterwards. Setting it to false once this stack owns the provider
+ * takes the resource's count from 1 to 0 - which destroys the provider and
+ * makes every CI role unassumable. prevent_destroy below turns that into a
+ * loud plan-time error instead of an outage.
+ *
  * No thumbprint_list. AWS validates token.actions.githubusercontent.com
  * against its own library of trusted root CAs, and for GitHub specifically a
  * configured thumbprint is kept but never used for verification. The
@@ -22,6 +28,10 @@ resource "aws_iam_openid_connect_provider" "github" {
   # trust policy below pins it again - a token minted for another service
   # must not be replayable at STS.
   client_id_list = ["sts.amazonaws.com"]
+
+  lifecycle {
+    prevent_destroy = true
+  }
 }
 
 data "aws_iam_openid_connect_provider" "github" {

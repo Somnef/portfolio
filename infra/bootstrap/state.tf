@@ -23,6 +23,13 @@
 #trivy:ignore:AVD-AWS-0089
 resource "aws_s3_bucket" "state" {
   bucket = var.state_bucket_name
+
+  # Every stack's state lives here. Deleting it is unrecoverable in a way
+  # that no amount of versioning helps with, so it cannot be destroyed by
+  # an accidental plan - remove this block deliberately if you ever mean it.
+  lifecycle {
+    prevent_destroy = true
+  }
 }
 
 resource "aws_s3_bucket_versioning" "state" {

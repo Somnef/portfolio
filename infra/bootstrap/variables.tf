@@ -129,6 +129,10 @@ variable "create_oidc_provider" {
     An AWS account may hold exactly one provider per issuer URL. Set this to
     false if something else in the account already registered
     token.actions.githubusercontent.com, and it will be looked up instead.
+
+    Decide this BEFORE the first apply. Flipping it to false afterwards
+    destroys the provider this stack created and breaks every CI role;
+    prevent_destroy on the resource stops that at plan time.
   DESC
   type        = bool
   default     = true

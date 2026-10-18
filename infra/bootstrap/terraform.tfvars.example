@@ -33,4 +33,7 @@ site_bucket_name = "CHANGE-ME-portfolio-site"
 
 # false if token.actions.githubusercontent.com is already registered in this
 # account, in which case the existing provider is adopted instead.
+#
+# Decide before the first apply. Once this stack owns the provider, flipping
+# this to false would destroy it and break every CI role.
 create_oidc_provider = true
