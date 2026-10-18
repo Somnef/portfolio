@@ -1,0 +1,191 @@
+# Runs on every merge to main: build, plan, apply if infra changed, deploy.
+#
+#   build ──────────────────────────────┐
+#   plan ── apply (only if changes, ────┴── deploy
+#           waits for approval in the
+#           infra environment)
+#
+# Apply runs before deploy because the site can depend on it: a font change
+# alters the CSP hashes, and the new pages need the new headers policy.
+# docs/ci.md has the full picture, rollback included.
+
+name: Release
+
+on:
+  push:
+    branches: [main]
+  # Re-run a release by hand from main, e.g. after fixing a failed deploy.
+  workflow_dispatch:
+
+permissions: {}
+
+# One release at a time, and never cancel one mid-way: a half-applied plan or
+# a half-synced bucket is worse than waiting.
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+env:
+  ASTRO_TELEMETRY_DISABLED: '1'
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # No dependency cache here: a cache written by a PR run must never feed
+      # the build that ships.
+      - name: Set up Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .tool-versions
+          package-manager-cache: false
+
+      - name: Install
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Security headers match the build
+        run: npm run headers:check
+
+      # The site is public by definition, so a public artifact is fine here
+      # (unlike a Terraform plan, which travels through the state bucket).
+      - name: Keep the build for the deploy job
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: site
+          path: site/dist
+          if-no-files-found: error
+          retention-days: 7
+
+  plan:
+    name: Terraform plan
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      id-token: write
+    outputs:
+      changes: ${{ steps.plan.outputs.changes }}
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Read the pinned Terraform version
+        id: terraform
+        run: echo "version=$(awk '$1 == "terraform" { print $2 }' .tool-versions)" >> "${GITHUB_OUTPUT}"
+
+      # No wrapper: the scripts read terraform's exit codes and stdout directly.
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4.0.1
+        with:
+          terraform_version: ${{ steps.terraform.outputs.version }}
+          terraform_wrapper: false
+
+      - name: Assume the plan role
+        uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_PLAN }}
+          aws-region: ${{ vars.AWS_REGION }}
+          mask-aws-account-id: true
+
+      - name: Plan infra/main
+        id: plan
+        run: scripts/ci/terraform-plan.sh
+        env:
+          TF_STATE_BUCKET: ${{ vars.TF_STATE_BUCKET }}
+          MAIN_TFVARS: ${{ secrets.MAIN_TFVARS }}
+          PLAN_S3_URI: s3://${{ vars.TF_STATE_BUCKET }}/plans/${{ github.run_id }}-${{ github.run_attempt }}/tfplan
+
+  apply:
+    name: Terraform apply
+    needs: plan
+    if: needs.plan.outputs.changes == 'true'
+    runs-on: ubuntu-24.04
+    # The gate: a required reviewer approves the plan in the job summary
+    # above. The apply role trusts only jobs in this environment.
+    environment: infra
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Read the pinned Terraform version
+        id: terraform
+        run: echo "version=$(awk '$1 == "terraform" { print $2 }' .tool-versions)" >> "${GITHUB_OUTPUT}"
+
+      # No wrapper: the scripts read terraform's exit codes and stdout directly.
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4.0.1
+        with:
+          terraform_version: ${{ steps.terraform.outputs.version }}
+          terraform_wrapper: false
+
+      - name: Assume the apply role
+        uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_APPLY }}
+          aws-region: ${{ vars.AWS_REGION }}
+          mask-aws-account-id: true
+
+      - name: Apply the saved plan
+        run: scripts/ci/terraform-apply.sh
+        env:
+          TF_STATE_BUCKET: ${{ vars.TF_STATE_BUCKET }}
+          PLAN_S3_URI: s3://${{ vars.TF_STATE_BUCKET }}/plans/${{ github.run_id }}-${{ github.run_attempt }}/tfplan
+
+  deploy:
+    name: Deploy site
+    needs: [build, plan, apply]
+    # Apply is skipped when nothing changed; that must not block the deploy.
+    # A failed or rejected apply must.
+    if: >-
+      !cancelled()
+      && needs.build.result == 'success'
+      && needs.plan.result == 'success'
+      && (needs.apply.result == 'success' || needs.apply.result == 'skipped')
+    runs-on: ubuntu-24.04
+    environment:
+      name: production
+      url: ${{ vars.SITE_URL }}
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Fetch the build
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: site
+          path: site/dist
+
+      - name: Assume the deploy role
+        uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_DEPLOY }}
+          aws-region: ${{ vars.AWS_REGION }}
+          mask-aws-account-id: true
+
+      - name: Publish and invalidate
+        run: scripts/deploy.sh
+        env:
+          SITE_BUCKET: ${{ vars.SITE_BUCKET }}
+          DISTRIBUTION_ID: ${{ vars.CLOUDFRONT_DISTRIBUTION_ID }}
