@@ -1,0 +1,178 @@
+# Proves the OIDC trust policies before anything real depends on them.
+#
+# Run it manually from the Actions tab after the bootstrap apply. It is
+# deliberately not triggered by push: it exists to be read and run
+# deliberately, not to add noise to every commit.
+#
+# It checks both directions. A role that can be assumed where it should is
+# only half the result - the half that matters is that the two gated roles
+# CANNOT be assumed outside their environment.
+
+name: OIDC check
+
+on:
+  workflow_dispatch:
+
+# Read-only by default; only the jobs below widen it, and only to mint the
+# OIDC token.
+permissions: {}
+
+jobs:
+  subject:
+    name: Print the token subject
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+    steps:
+      - name: Decode the OIDC token claims
+        env:
+          AUDIENCE: sts.amazonaws.com
+        run: |
+          set -euo pipefail
+
+          # The runner is handed a URL and a bearer token to exchange for a
+          # JWT. Neither is printed: the bearer token mints credentials and
+          # the JWT itself is one.
+          token="$(curl -sSf \
+            -H "Authorization: bearer ${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" \
+            "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=${AUDIENCE}" \
+            | jq -r '.value')"
+
+          # A JWT is header.payload.signature, base64url. Only the payload is
+          # decoded, and only named claims are printed.
+          payload="$(echo "${token}" | cut -d. -f2)"
+          # base64url -> base64, then pad to a multiple of 4.
+          payload="$(echo "${payload}" | tr '_-' '/+')"
+          while [ $(( ${#payload} % 4 )) -ne 0 ]; do payload="${payload}="; done
+
+          echo "${payload}" | base64 -d | jq '{
+            iss, aud, sub,
+            repository, repository_id,
+            repository_owner, repository_owner_id,
+            ref, event_name, environment,
+            runner_environment
+          }'
+
+          echo
+          echo "Compare the sub above with the accepted_subjects output from"
+          echo "terraform. If they differ, that is the whole bug."
+
+  plan-role:
+    name: plan role (expected to succeed)
+    runs-on: ubuntu-latest
+    needs: subject
+    permissions:
+      id-token: write
+    steps:
+      - name: Assume the plan role
+        uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_PLAN }}
+          aws-region: ${{ vars.AWS_REGION }}
+          mask-aws-account-id: true
+      - name: Show which role we got
+        run: |
+          set -euo pipefail
+          # Only the role name. The full ARN carries the account ID, which on
+          # a public repo means a world-readable log.
+          aws sts get-caller-identity --query Arn --output text | cut -d/ -f2
+
+  apply-role-denied:
+    name: apply role without its environment (expected to FAIL)
+    runs-on: ubuntu-latest
+    needs: subject
+    permissions:
+      id-token: write
+    steps:
+      # No `environment:` on this job, so the subject is the branch form and
+      # the apply role's trust policy must refuse it.
+      - name: Attempt to assume the apply role
+        id: attempt
+        continue-on-error: true
+        uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_APPLY }}
+          aws-region: ${{ vars.AWS_REGION }}
+          mask-aws-account-id: true
+
+      - name: The gate holds only if that failed
+        env:
+          OUTCOME: ${{ steps.attempt.outcome }}
+        run: |
+          set -euo pipefail
+          if [ "${OUTCOME}" = "success" ]; then
+            echo "::error::The apply role was assumable WITHOUT the environment gate."
+            echo "Its trust policy is too broad - check the sub condition."
+            exit 1
+          fi
+          echo "Refused, as intended."
+
+  apply-role:
+    name: apply role in its environment (expected to succeed)
+    runs-on: ubuntu-latest
+    needs: subject
+    environment: infra
+    permissions:
+      id-token: write
+    steps:
+      - name: Assume the apply role
+        uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_APPLY }}
+          aws-region: ${{ vars.AWS_REGION }}
+          mask-aws-account-id: true
+      - name: Show which role we got
+        run: |
+          set -euo pipefail
+          # Only the role name. The full ARN carries the account ID, which on
+          # a public repo means a world-readable log.
+          aws sts get-caller-identity --query Arn --output text | cut -d/ -f2
+
+  deploy-role-denied:
+    name: deploy role without its environment (expected to FAIL)
+    runs-on: ubuntu-latest
+    needs: subject
+    permissions:
+      id-token: write
+    steps:
+      - name: Attempt to assume the deploy role
+        id: attempt
+        continue-on-error: true
+        uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_DEPLOY }}
+          aws-region: ${{ vars.AWS_REGION }}
+          mask-aws-account-id: true
+
+      - name: The gate holds only if that failed
+        env:
+          OUTCOME: ${{ steps.attempt.outcome }}
+        run: |
+          set -euo pipefail
+          if [ "${OUTCOME}" = "success" ]; then
+            echo "::error::The deploy role was assumable WITHOUT the environment gate."
+            echo "Its trust policy is too broad - check the sub condition."
+            exit 1
+          fi
+          echo "Refused, as intended."
+
+  deploy-role:
+    name: deploy role in its environment (expected to succeed)
+    runs-on: ubuntu-latest
+    needs: subject
+    environment: production
+    permissions:
+      id-token: write
+    steps:
+      - name: Assume the deploy role
+        uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_DEPLOY }}
+          aws-region: ${{ vars.AWS_REGION }}
+          mask-aws-account-id: true
+      - name: Show which role we got
+        run: |
+          set -euo pipefail
+          # Only the role name. The full ARN carries the account ID, which on
+          # a public repo means a world-readable log.
+          aws sts get-caller-identity --query Arn --output text | cut -d/ -f2
