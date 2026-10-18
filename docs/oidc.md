@@ -196,16 +196,30 @@ On `infra`, leave **Prevent self-review off**. On a solo repository you are
 both the person who triggers the run and the only reviewer; with it on, the
 job waits forever.
 
-**Repository variables** (Settings → Secrets and variables → Actions →
-Variables). Variables, not secrets — role ARNs are not sensitive, and
-variables are readable in logs, which makes failures diagnosable:
+**Repository secrets and variables** (Settings → Secrets and variables →
+Actions):
 
-| Variable          | Value                              |
-| ----------------- | ---------------------------------- |
-| `AWS_REGION`      | the region from `terraform.tfvars` |
-| `AWS_ROLE_PLAN`   | `role_arns.plan`                   |
-| `AWS_ROLE_APPLY`  | `role_arns.apply`                  |
-| `AWS_ROLE_DEPLOY` | `role_arns.deploy`                 |
+| Name              | Kind       | Value                              |
+| ----------------- | ---------- | ---------------------------------- |
+| `AWS_REGION`      | Variable   | the region from `terraform.tfvars` |
+| `AWS_ROLE_PLAN`   | **Secret** | `role_arns.plan`                   |
+| `AWS_ROLE_APPLY`  | **Secret** | `role_arns.apply`                  |
+| `AWS_ROLE_DEPLOY` | **Secret** | `role_arns.deploy`                 |
+
+The role ARNs are **secrets, not variables**, because a role ARN contains the
+AWS account ID and this repository is public — which makes its workflow logs
+public too. Variables are plaintext in logs; secrets are masked.
+
+An AWS account ID is not a credential, and AWS's own position is that it is
+not secret. But it identifies the account to anyone enumerating targets, and
+there is nothing to gain here by publishing it.
+
+Masking the secret is not sufficient on its own. GitHub masks the exact
+stored string, while `sts:GetCallerIdentity` returns an _assumed-role_ ARN —
+a different string carrying the same account ID. So every
+`configure-aws-credentials` step also sets `mask-aws-account-id: true`, which
+registers the ID itself as a mask for the rest of the job. The action does
+not do that by default.
 
 ## Runbook — prove it
 

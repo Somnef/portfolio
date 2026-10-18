@@ -67,10 +67,15 @@ jobs:
       - name: Assume the plan role
         uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
         with:
-          role-to-assume: ${{ vars.AWS_ROLE_PLAN }}
+          role-to-assume: ${{ secrets.AWS_ROLE_PLAN }}
           aws-region: ${{ vars.AWS_REGION }}
-      - name: Show who we are
-        run: aws sts get-caller-identity
+          mask-aws-account-id: true
+      - name: Show which role we got
+        run: |
+          set -euo pipefail
+          # Only the role name. The full ARN carries the account ID, which on
+          # a public repo means a world-readable log.
+          aws sts get-caller-identity --query Arn --output text | cut -d/ -f2
 
   apply-role-denied:
     name: apply role without its environment (expected to FAIL)
@@ -86,8 +91,9 @@ jobs:
         continue-on-error: true
         uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
         with:
-          role-to-assume: ${{ vars.AWS_ROLE_APPLY }}
+          role-to-assume: ${{ secrets.AWS_ROLE_APPLY }}
           aws-region: ${{ vars.AWS_REGION }}
+          mask-aws-account-id: true
 
       - name: The gate holds only if that failed
         env:
@@ -112,10 +118,15 @@ jobs:
       - name: Assume the apply role
         uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
         with:
-          role-to-assume: ${{ vars.AWS_ROLE_APPLY }}
+          role-to-assume: ${{ secrets.AWS_ROLE_APPLY }}
           aws-region: ${{ vars.AWS_REGION }}
-      - name: Show who we are
-        run: aws sts get-caller-identity
+          mask-aws-account-id: true
+      - name: Show which role we got
+        run: |
+          set -euo pipefail
+          # Only the role name. The full ARN carries the account ID, which on
+          # a public repo means a world-readable log.
+          aws sts get-caller-identity --query Arn --output text | cut -d/ -f2
 
   deploy-role-denied:
     name: deploy role without its environment (expected to FAIL)
@@ -129,8 +140,9 @@ jobs:
         continue-on-error: true
         uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
         with:
-          role-to-assume: ${{ vars.AWS_ROLE_DEPLOY }}
+          role-to-assume: ${{ secrets.AWS_ROLE_DEPLOY }}
           aws-region: ${{ vars.AWS_REGION }}
+          mask-aws-account-id: true
 
       - name: The gate holds only if that failed
         env:
@@ -155,7 +167,12 @@ jobs:
       - name: Assume the deploy role
         uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
         with:
-          role-to-assume: ${{ vars.AWS_ROLE_DEPLOY }}
+          role-to-assume: ${{ secrets.AWS_ROLE_DEPLOY }}
           aws-region: ${{ vars.AWS_REGION }}
-      - name: Show who we are
-        run: aws sts get-caller-identity
+          mask-aws-account-id: true
+      - name: Show which role we got
+        run: |
+          set -euo pipefail
+          # Only the role name. The full ARN carries the account ID, which on
+          # a public repo means a world-readable log.
+          aws sts get-caller-identity --query Arn --output text | cut -d/ -f2
