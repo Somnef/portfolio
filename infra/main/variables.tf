@@ -56,3 +56,43 @@ variable "price_class" {
     error_message = "price_class must be PriceClass_100, PriceClass_200 or PriceClass_All."
   }
 }
+
+# --- Domain (optional) -----------------------------------------------------
+
+variable "domain_name" {
+  description = <<-DESC
+    Apex domain the site is served at, e.g. example.com. null serves it at
+    the distribution's *.cloudfront.net address with CloudFront's default
+    certificate, and creates no ACM or Route 53 resources.
+
+    Must match `site` in site/astro.config.mjs, which writes this domain into
+    every canonical URL, hreflang link and RSS entry.
+  DESC
+  type        = string
+  default     = null
+
+  validation {
+    condition     = var.domain_name == null || can(regex("^([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\\.)+[a-z]{2,63}$", var.domain_name))
+    error_message = "domain_name must be a lowercase apex domain such as example.com, or null."
+  }
+}
+
+variable "create_hosted_zone" {
+  description = <<-DESC
+    true creates a Route 53 hosted zone for domain_name; false adopts the one
+    that already exists. A domain registered through Route 53 already has one
+    (the registrar created it), so this is false for that case.
+
+    With true and a registrar outside Route 53, the zone's name servers must
+    be set at the registrar before the certificate can validate - see the
+    two-step apply in terraform.tfvars.example.
+  DESC
+  type        = bool
+  default     = false
+}
+
+variable "enable_www_redirect" {
+  description = "Also serve www.<domain_name>, which the viewer-request function 301s to the apex."
+  type        = bool
+  default     = true
+}

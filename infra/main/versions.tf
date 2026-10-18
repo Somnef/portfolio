@@ -34,3 +34,16 @@ provider "aws" {
     tags = local.tags
   }
 }
+
+/*
+ * CloudFront only accepts ACM certificates issued in us-east-1, whatever
+ * region the rest of the stack is in. Used by domain.tf alone.
+ */
+provider "aws" {
+  alias  = "us_east_1"
+  region = "us-east-1"
+
+  default_tags {
+    tags = local.tags
+  }
+}

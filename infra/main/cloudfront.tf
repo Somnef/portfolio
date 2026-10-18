@@ -66,9 +66,10 @@ resource "aws_cloudfront_cache_policy" "html" {
  * No access logging: traffic is read from CloudFront's built-in console
  * reports, and logs would be a bucket of visitor IPs to look after.
  *
- * The default certificate pins the minimum TLS version to TLSv1 - AWS does
- * not allow anything else with *.cloudfront.net. Setting domain_name swaps
- * in an ACM certificate with a TLS 1.2 floor.
+ * TLS: with a domain, the ACM certificate and TLSv1.2_2025 - TLS 1.2 or
+ * 1.3, forward-secret AEAD ciphers only. Without one, the *.cloudfront.net
+ * default certificate, which AWS pins to the TLSv1 policy; no other value is
+ * accepted there.
  */
 #trivy:ignore:AVD-AWS-0010
 #trivy:ignore:AVD-AWS-0011
@@ -79,6 +80,7 @@ resource "aws_cloudfront_distribution" "site" {
   http_version        = "http2and3"
   is_ipv6_enabled     = true
   price_class         = var.price_class
+  aliases             = local.site_aliases
 
   origin {
     origin_id                = "site"
@@ -136,6 +138,9 @@ resource "aws_cloudfront_distribution" "site" {
   }
 
   viewer_certificate {
-    cloudfront_default_certificate = true
+    cloudfront_default_certificate = !local.domain_enabled
+    acm_certificate_arn            = local.domain_enabled ? aws_acm_certificate_validation.site[0].certificate_arn : null
+    ssl_support_method             = local.domain_enabled ? "sni-only" : null
+    minimum_protocol_version       = local.domain_enabled ? "TLSv1.2_2025" : "TLSv1"
   }
 }
