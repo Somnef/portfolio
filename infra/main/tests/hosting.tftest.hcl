@@ -71,12 +71,19 @@ mock_provider "aws" {
   }
 }
 
+# terraform test also loads a local terraform.tfvars, so every variable is
+# pinned here - otherwise the real domain would meet example.com mocks.
 variables {
-  aws_region         = "eu-west-1"
-  project            = "portfolio"
-  site_bucket_name   = "example-portfolio-site"
-  budget_limit_usd   = 5
-  budget_alert_email = "alerts@example.com"
+  aws_region          = "eu-west-1"
+  project             = "portfolio"
+  site_bucket_name    = "example-portfolio-site"
+  tags                = {}
+  price_class         = "PriceClass_100"
+  domain_name         = null
+  create_hosted_zone  = false
+  enable_www_redirect = true
+  budget_limit_usd    = 5
+  budget_alert_email  = "alerts@example.com"
 }
 
 run "without_a_domain" {
