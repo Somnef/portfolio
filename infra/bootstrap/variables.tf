@@ -102,7 +102,7 @@ variable "production_environment" {
 /*
  * The CI role policies have to name resources that infra/main creates. The
  * two stacks are in separate states, so these are plain name patterns rather
- * than Terraform references (PLAN.md 3.8/28). Keep them in step by hand.
+ * than Terraform references. Keep them in step by hand.
  */
 
 variable "site_bucket_name" {

@@ -3,9 +3,9 @@
  * hash them, and assemble the security headers. No file system access here,
  * so all of it is unit-tested directly.
  *
- * PLAN.md 3.5b/3.5c: script-src stays strictly 'self'. style-src carries the
- * sha256 of each inline <style> block (Astro's <Font> @font-face rules) and
- * nothing else. Inline style="" attributes are not allowed at all: there is
+ * script-src stays strictly 'self'. style-src carries the sha256 of each
+ * inline <style> block (Astro's <Font> @font-face rules) and nothing else.
+ * Inline style="" attributes are not allowed at all: there is
  * no 'unsafe-hashes', so a browser would drop them. Shiki's token colours are
  * classes instead (site/src/lib/shiki-classes.ts), which keeps the policy
  * independent of what posts contain.
@@ -120,7 +120,7 @@ export function buildCsp({ blocks = [], analytics = { provider: 'none' }, turnst
   if (policy.length > MAX_CSP_LENGTH) {
     throw new Error(
       `CSP is ${policy.length} characters; CloudFront allows ${MAX_CSP_LENGTH}. ` +
-        'Too many distinct inline <style> blocks - see PLAN.md 3.5c.',
+        'Too many distinct inline <style> blocks.',
     );
   }
 

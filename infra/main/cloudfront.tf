@@ -29,9 +29,9 @@ data "aws_cloudfront_cache_policy" "caching_optimized" {
  * may only hold them briefly: a deploy invalidates the cache, but anything
  * that slips past an invalidation is stale for at most an hour.
  *
- * The TTLs bound what the origin's Cache-Control asks for; the deploy sets
- * that header per file (PLAN.md Phase 8). default_ttl applies only to an
- * object uploaded without one.
+ * The TTLs bound what the origin's Cache-Control asks for; scripts/deploy.sh
+ * sets that header on every upload. default_ttl applies only to an object
+ * uploaded without one.
  */
 resource "aws_cloudfront_cache_policy" "html" {
   name        = "${var.project}-html"

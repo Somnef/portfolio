@@ -1,7 +1,7 @@
 /**
  * Analytics hook.
  *
- * Phase 1 ships no analytics: CloudFront's own console reports cover it, and
+ * The site ships no analytics: CloudFront's own console reports cover it, and
  * there are no cookies. This exists so the call sites are marked now and
  * enabling a provider later is a config change rather than a hunt through the
  * codebase for the right places.
