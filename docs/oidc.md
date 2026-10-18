@@ -223,6 +223,13 @@ not do that by default.
 
 ## Runbook — prove it
 
+> **The workflow must be on the default branch first.** A `workflow_dispatch`
+> workflow only triggers, and only shows a "Run workflow" button, if the file
+> exists on `main` — so merge the PR that adds it before trying to run it.
+> Selecting a different branch in the dialog afterwards is fine; the
+> requirement is only that the file is also on `main`. The secrets, variables
+> and environments are repository-level and can be set up beforehand.
+
 Run **OIDC check** from the Actions tab. Six jobs:
 
 - `subject` prints the real token claims
