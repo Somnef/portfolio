@@ -85,6 +85,11 @@ const fr: UIStrings = {
   'lang.current': 'Langue actuelle',
 
   'footer.sourceCode': 'Code source',
+
+  'notFound.title': 'Page introuvable',
+  'notFound.body':
+    "Il n'y a rien à cette adresse. La page a peut-être été déplacée, ou le lien est erroné.",
+  'notFound.home': "Retour à la page d'accueil",
 };
 
 export default fr;

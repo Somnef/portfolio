@@ -1,0 +1,51 @@
+---
+import { getRelativeLocaleUrl } from 'astro:i18n';
+import { languages, toLang, useTranslations, type Lang } from '../i18n';
+
+/*
+ * CloudFront serves one error page for every missing URL, whatever its
+ * locale, so the message is given in every language - the page's own first,
+ * then the others, each marked with its lang so screen readers switch voice.
+ */
+const lang = toLang(Astro.currentLocale);
+const order = [lang, ...(Object.keys(languages) as Lang[]).filter((code) => code !== lang)];
+---
+
+<div class="not-found">
+  {order.map((code, index) => {
+    const t = useTranslations(code);
+    return (
+      <section lang={code} aria-labelledby={`not-found-${code}`}>
+        {index === 0 ? (
+          <h1 id={`not-found-${code}`}>{t('notFound.title')}</h1>
+        ) : (
+          <h2 id={`not-found-${code}`}>{t('notFound.title')}</h2>
+        )}
+        <p>{t('notFound.body')}</p>
+        <p>
+          <a href={getRelativeLocaleUrl(code, '/')}>{t('notFound.home')}</a>
+        </p>
+      </section>
+    );
+  })}
+</div>
+
+<style>
+  .not-found {
+    display: grid;
+    gap: var(--space-7);
+    padding-block: var(--space-8);
+  }
+
+  section {
+    display: grid;
+    gap: var(--space-4);
+  }
+
+  /* The secondary languages repeat the message, so they sit quieter. */
+  section + section {
+    padding-block-start: var(--space-7);
+    border-block-start: var(--border-width) solid var(--color-divider);
+    color: var(--color-text-muted);
+  }
+</style>

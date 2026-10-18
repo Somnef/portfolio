@@ -86,6 +86,10 @@ const en = {
   'lang.current': 'Current language',
 
   'footer.sourceCode': 'Source code',
+
+  'notFound.title': 'Page not found',
+  'notFound.body': 'Nothing lives at this address. It may have moved, or the link may be wrong.',
+  'notFound.home': 'Back to the home page',
 } as const;
 
 export type UIStrings = Record<keyof typeof en, string>;

@@ -15,13 +15,17 @@
   "scripts": {
     "dev": "npm run dev --workspace site",
     "build": "npm run build --workspace site",
+    "headers": "node scripts/gen-headers.mjs",
+    "headers:check": "node scripts/gen-headers.mjs --check",
+    "preview": "node scripts/preview.mjs",
     "sprites": "node scripts/gen-placeholder-sprites.mjs",
     "check": "npm run check --workspace site",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "test": "npm run test --workspaces --if-present"
+    "test": "node --test \"infra/**/*.test.mjs\" \"scripts/**/*.test.mjs\" && npm run test --workspaces --if-present",
+    "infra:check": "scripts/infra-check.sh"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

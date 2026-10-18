@@ -82,7 +82,31 @@ Run from the repository root.
 | `npm run lint`         | ESLint, including accessibility rules |
 | `npm run format`       | Format with Prettier                  |
 | `npm run format:check` | Verify formatting                     |
-| `npm test`             | Run workspace tests                   |
+| `npm test`             | Unit tests (CloudFront Function, CSP) |
+| `npm run headers`      | Regenerate `config/headers.json`      |
+| `npm run preview`      | Serve the build as CloudFront would   |
+| `npm run infra:check`  | Terraform fmt, validate, test, scans  |
+
+### Checking a production build
+
+```sh
+npm run build && npm run headers && npm run preview
+```
+
+`npm run preview` serves `site/dist/` at `http://localhost:4500` the way the
+CDN will: through the same CloudFront Function file, with missing pages
+answered by the 404 page, and with the exact security headers, including the
+Content-Security-Policy, that CloudFront sends. A CSP violation therefore
+shows up in the browser console here, before a deploy.
+
+The CSP allows inline styles by hash, and those hashes come from the build.
+`npm run headers` regenerates them; commit the result whenever it changes. CI
+runs `npm run headers:check`, which fails if the committed file is stale, so a
+post that introduces a new syntax-highlighting colour must ship its updated
+headers in the same pull request.
+
+`npm run infra:check` needs Terraform, tflint and trivy (all in
+`.tool-versions`). It reads no state and calls no AWS API.
 
 ## Layout
 

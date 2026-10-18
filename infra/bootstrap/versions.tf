@@ -9,23 +9,18 @@ terraform {
   }
 
   /*
-   * Bootstrap deliberately starts on LOCAL state. It creates the very bucket
-   * every other configuration keeps its state in, so on the first apply there
-   * is nowhere remote to put its own state yet.
-   *
-   * After that first apply, uncomment the block below and run
+   * This state lives in the bucket this stack creates. That is circular on a
+   * first apply into a fresh account, where the bucket does not exist yet:
+   * comment the block out, apply on local state, then restore it and run
    *   terraform init -migrate-state
-   * to move this state into the bucket it just created. Until you do, the
-   * only copy of it is terraform.tfstate in this directory - and losing it
-   * means the CI roles and the OIDC provider become orphaned, adoptable only
-   * by `terraform import`. docs/oidc.md spells the migration out.
+   * to move the state into the new bucket. docs/oidc.md spells this out.
    */
 
-  # backend "s3" {
-  #   key          = "bootstrap/terraform.tfstate"
-  #   use_lockfile = true
-  #   encrypt      = true
-  # }
+  backend "s3" {
+    key          = "bootstrap/terraform.tfstate"
+    use_lockfile = true
+    encrypt      = true
+  }
 }
 
 provider "aws" {
