@@ -10,9 +10,15 @@ import '../styles/global.css';
 interface Props {
   title: string;
   description: string;
+  /**
+   * For pages that must not be indexed, such as the 404. They get a robots
+   * noindex and no canonical or hreflang links, since the same file is served
+   * at whatever URL was missing.
+   */
+  noindex?: boolean;
 }
 
-const { title, description } = Astro.props;
+const { title, description, noindex = false } = Astro.props;
 
 const lang = toLang(Astro.currentLocale);
 const t = useTranslations(lang);
@@ -36,11 +42,21 @@ const alternates = (Object.keys(languages) as (keyof typeof languages)[]).map((c
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{title}</title>
     <meta name="description" content={description} />
-    <link rel="canonical" href={canonical} />
-    {alternates.map(({ code, href }) => (
-      <link rel="alternate" hreflang={code} href={href} />
-    ))}
-    <link rel="alternate" hreflang="x-default" href={getAbsoluteLocaleUrl(defaultLang, basePath)} />
+    {noindex ? (
+      <meta name="robots" content="noindex" />
+    ) : (
+      <>
+        <link rel="canonical" href={canonical} />
+        {alternates.map(({ code, href }) => (
+          <link rel="alternate" hreflang={code} href={href} />
+        ))}
+        <link
+          rel="alternate"
+          hreflang="x-default"
+          href={getAbsoluteLocaleUrl(defaultLang, basePath)}
+        />
+      </>
+    )}
     <meta name="generator" content={Astro.generator} />
     <!-- Self-hosted @font-face. Deliberately not preloaded; see the fonts
          block in astro.config.mjs for why. -->
