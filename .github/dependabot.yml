@@ -4,6 +4,10 @@
 #
 # cooldown: a release must be two weeks old before it is proposed, so a
 # hijacked or broken version has time to be noticed and pulled first.
+#
+# Groups take minor and patch updates only. A major version arrives as its
+# own PR, so one breaking upgrade never holds back the safe ones it would
+# otherwise be bundled with.
 
 version: 2
 
@@ -17,6 +21,7 @@ updates:
     groups:
       actions:
         patterns: ['*']
+        update-types: [minor, patch]
     commit-message:
       prefix: chore(ci)
 
@@ -29,8 +34,15 @@ updates:
     groups:
       astro:
         patterns: ['astro', '@astrojs/*', 'shiki']
+        update-types: [minor, patch]
       tooling:
         dependency-type: development
+        update-types: [minor, patch]
+    ignore:
+      # astro check refuses TypeScript 7 ("does not currently support
+      # TypeScript 7.0"). Lift this once @astrojs/check supports it.
+      - dependency-name: typescript
+        update-types: ['version-update:semver-major']
     commit-message:
       prefix: chore(deps)
 
@@ -43,5 +55,6 @@ updates:
     groups:
       providers:
         patterns: ['*']
+        update-types: [minor, patch]
     commit-message:
       prefix: chore(infra)
