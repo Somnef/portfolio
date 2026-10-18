@@ -25,8 +25,7 @@ export const site = {
  * (npm run headers) after changing it.
  */
 export type AnalyticsConfig =
-  | { provider: 'none' }
-  | { provider: 'umami'; src: string; websiteId: string };
+  { provider: 'none' } | { provider: 'umami'; src: string; websiteId: string };
 
 export const analytics: AnalyticsConfig = { provider: 'none' };
 
