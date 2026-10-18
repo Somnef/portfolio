@@ -166,7 +166,9 @@ cd .. && tflint --init && tflint --recursive && cd bootstrap
 cd ../.. && trivy config --exit-code 1 infra/
 ```
 
-**4. Apply.**
+**4. Apply on local state.** The backend block in `versions.tf` points at the
+state bucket this apply creates, so for a first apply into a fresh account,
+comment it out first. Step 6 moves the state in afterwards.
 
 ```sh
 cd infra/bootstrap
@@ -182,6 +184,22 @@ terraform output role_arns
 terraform output state_bucket
 terraform output accepted_subjects
 ```
+
+**6. Move the state into S3.** Restore the backend block, then:
+
+```sh
+terraform init -migrate-state \
+  -backend-config="bucket=YOUR-STATE-BUCKET" \
+  -backend-config="region=YOUR-REGION"
+```
+
+Until this is done, the only copy is `terraform.tfstate` in that directory,
+and it is git-ignored. Losing it orphans the roles and the OIDC provider — they
+keep working, but Terraform no longer knows about them and you would have to
+`terraform import` them back.
+
+State locking is handled by S3 itself via `use_lockfile`. There is no
+DynamoDB table; that mechanism is deprecated in the S3 backend.
 
 ## Runbook — GitHub setup
 
@@ -243,27 +261,6 @@ The two `*-denied` jobs are the point. A green run where those pass means the
 trust policies are too broad.
 
 The `apply-role` job will pause for your approval. That is the gate working.
-
-## Optional — move the bootstrap state into S3
-
-Bootstrap starts on local state because it creates the bucket everything else
-stores state in. After the first apply you can move it in:
-
-```sh
-cd infra/bootstrap
-# uncomment the backend block in versions.tf, then:
-terraform init -migrate-state \
-  -backend-config="bucket=YOUR-STATE-BUCKET" \
-  -backend-config="region=YOUR-REGION"
-```
-
-Until you do, the only copy is `terraform.tfstate` in that directory, and it
-is git-ignored. Losing it orphans the roles and the OIDC provider — they keep
-working, but Terraform no longer knows about them and you would have to
-`terraform import` them back.
-
-State locking is handled by S3 itself via `use_lockfile`. There is no
-DynamoDB table; that mechanism is deprecated in the S3 backend.
 
 ## Troubleshooting
 
