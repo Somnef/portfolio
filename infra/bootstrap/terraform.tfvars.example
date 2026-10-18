@@ -1,0 +1,36 @@
+# Copy to terraform.tfvars (git-ignored) and fill in.
+#
+# Read the GitHub IDs straight from the API:
+#   gh api repos/OWNER/REPO --jq '{repo_id: .id, owner_id: .owner.id}'
+
+aws_region = "eu-west-3"
+project    = "portfolio"
+
+# Must be globally unique across all of S3. A random suffix is the usual fix.
+state_bucket_name = "CHANGE-ME-portfolio-tfstate"
+
+# --- GitHub identity -------------------------------------------------------
+
+github_owner = "CHANGE-ME"
+github_repo  = "portfolio"
+
+# Required while use_immutable_subject is true. Numbers, not strings.
+github_owner_id = 0
+github_repo_id  = 0
+
+# true  -> repo:OWNER@OWNER-ID/REPO@REPO-ID:...   (repos created after 2026-07-15)
+# false -> repo:OWNER/REPO:...                    (older repos)
+use_immutable_subject = true
+
+# --- Resources infra/main will create, named here by hand ------------------
+
+site_bucket_name = "CHANGE-ME-portfolio-site"
+
+# Narrow this to the real distribution ARN once infra/main has been applied.
+# cloudfront_distribution_arn = "arn:aws:cloudfront::123456789012:distribution/E1234567890ABC"
+
+# --- Toggles ---------------------------------------------------------------
+
+# false if token.actions.githubusercontent.com is already registered in this
+# account, in which case the existing provider is adopted instead.
+create_oidc_provider = true
