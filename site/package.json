@@ -8,7 +8,8 @@
     "build": "astro build",
     "preview": "astro preview",
     "check": "astro check",
-    "astro": "astro"
+    "astro": "astro",
+    "test": "node --test \"src/**/*.test.mjs\""
   },
   "dependencies": {
     "@astrojs/mdx": "^8.1.0",
@@ -18,6 +19,7 @@
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.10",
+    "shiki": "^4.5.0",
     "typescript": "~6.0.3"
   }
 }

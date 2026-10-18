@@ -1,6 +1,7 @@
 // @ts-check
 import { defineConfig, fontProviders } from 'astro/config';
 import mdx from '@astrojs/mdx';
+import { shikiStyleToClass } from './src/lib/shiki-classes.ts';
 
 export default defineConfig({
   // Drives canonical URLs, hreflang alternates and the RSS feed's absolute
@@ -112,6 +113,9 @@ export default defineConfig({
       // global.css (see the pre.astro-code rule and the reason there).
       theme: 'github-dark',
       wrap: false,
+      // Inline styles become classes (styles/shiki.css), so the CSP needs no
+      // hash per token colour and posts never change the response headers.
+      transformers: [shikiStyleToClass()],
     },
   },
 });
