@@ -17,6 +17,19 @@ export const site = {
   cvLocales: ['en', 'fr'],
 } as const;
 
+/**
+ * Analytics provider. 'none' ships no script and no cookies; CloudFront's
+ * console reports cover traffic. Switching to Umami is this one entry:
+ * scripts/gen-headers.mjs reads it, so the script's origin is added to the
+ * CSP's script-src and connect-src automatically. Regenerate the headers
+ * (npm run headers) after changing it.
+ */
+export type AnalyticsConfig =
+  | { provider: 'none' }
+  | { provider: 'umami'; src: string; websiteId: string };
+
+export const analytics: AnalyticsConfig = { provider: 'none' };
+
 /** Path to the CV for a locale, falling back to the default language. */
 export function cvHref(lang: string): string {
   const available = (site.cvLocales as readonly string[]).includes(lang);
