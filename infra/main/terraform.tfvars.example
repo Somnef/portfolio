@@ -1,0 +1,37 @@
+# Copy to terraform.tfvars (git-ignored) and fill in.
+
+aws_region = "eu-west-1"
+
+# Same slug as infra/bootstrap, so names and tags line up across stacks.
+project = "portfolio"
+
+# MUST equal site_bucket_name in infra/bootstrap/terraform.tfvars - the
+# deploy role's policy names this bucket, and nothing else checks it.
+site_bucket_name = "CHANGE-ME-portfolio-site"
+
+# PriceClass_100 (North America + Europe) is the cheapest. PriceClass_All
+# serves from every edge location.
+# price_class = "PriceClass_100"
+
+# --- Domain ----------------------------------------------------------------
+
+# null (or omitted) serves the site at its *.cloudfront.net address.
+# Must match `site` in site/astro.config.mjs.
+domain_name = "example.com"
+
+# false: adopt an existing zone (a Route 53-registered domain has one).
+# true:  create the zone. If the registrar is outside Route 53, apply in two
+#        steps, because the certificate cannot validate until the registrar
+#        delegates to the new zone:
+#          terraform apply -target=aws_route53_zone.site
+#          (set the `name_servers` output at the registrar, wait for it)
+#          terraform apply
+create_hosted_zone = false
+
+# www.<domain> also resolves, and 301s to the apex.
+enable_www_redirect = true
+
+# --- Cost guardrail --------------------------------------------------------
+
+budget_limit_usd   = 5
+budget_alert_email = "you@example.com"

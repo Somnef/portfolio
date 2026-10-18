@@ -96,3 +96,26 @@ variable "enable_www_redirect" {
   type        = bool
   default     = true
 }
+
+# --- Cost guardrail --------------------------------------------------------
+
+variable "budget_limit_usd" {
+  description = "Monthly cost budget for the whole account, in USD. Alerts fire at 80% actual and 100% forecast."
+  type        = number
+
+  validation {
+    condition     = var.budget_limit_usd > 0
+    error_message = "budget_limit_usd must be positive."
+  }
+}
+
+# Not committed anywhere: the repo is public. terraform.tfvars only.
+variable "budget_alert_email" {
+  description = "Address the budget alerts are sent to."
+  type        = string
+
+  validation {
+    condition     = can(regex("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$", var.budget_alert_email))
+    error_message = "budget_alert_email must be an email address."
+  }
+}

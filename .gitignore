@@ -31,6 +31,8 @@ crash.*.log
 *.tfvars
 *.tfvars.json
 !*.tfvars.example
+# Partial backend config: names the state bucket, account-specific.
+backend.hcl
 
 # --- Build / test output ---
 api/contact/dist/

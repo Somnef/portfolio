@@ -1,0 +1,8 @@
+# Copy to backend.hcl (git-ignored) and pass it at init:
+#   terraform init -backend-config=backend.hcl
+#
+# Both values are the outputs/inputs of infra/bootstrap. The state key is
+# fixed in versions.tf.
+
+bucket = "CHANGE-ME-portfolio-tfstate"
+region = "eu-west-1"

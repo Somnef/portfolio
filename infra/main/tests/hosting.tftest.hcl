@@ -72,9 +72,11 @@ mock_provider "aws" {
 }
 
 variables {
-  aws_region       = "eu-west-1"
-  project          = "portfolio"
-  site_bucket_name = "example-portfolio-site"
+  aws_region         = "eu-west-1"
+  project            = "portfolio"
+  site_bucket_name   = "example-portfolio-site"
+  budget_limit_usd   = 5
+  budget_alert_email = "alerts@example.com"
 }
 
 run "without_a_domain" {
@@ -93,6 +95,16 @@ run "without_a_domain" {
   assert {
     condition     = length(aws_acm_certificate.site) == 0 && length(aws_route53_record.site) == 0
     error_message = "No domain means no certificate and no DNS records."
+  }
+
+  assert {
+    condition     = output.site_url == "https://d111111abcdef8.cloudfront.net/"
+    error_message = "Without a domain, the site URL is the distribution's own address."
+  }
+
+  assert {
+    condition     = output.name_servers == null
+    error_message = "No zone was created, so there are no name servers to report."
   }
 }
 
@@ -174,6 +186,11 @@ run "creates_the_zone_when_asked" {
   assert {
     condition     = length(aws_route53_zone.site) == 1 && length(data.aws_route53_zone.site) == 0
     error_message = "create_hosted_zone = true should create the zone and skip the lookup."
+  }
+
+  assert {
+    condition     = output.site_url == "https://example.com/"
+    error_message = "With a domain, the site URL is the apex."
   }
 }
 
