@@ -71,28 +71,19 @@ describe('buildCsp', () => {
     assert.equal(directive(policy, 'frame-src'), undefined);
   });
 
-  it('hashes blocks without unsafe-hashes, which only attributes need', () => {
-    const styles = directive(buildCsp({ blocks: ['a{}'] }), 'style-src');
-    assert.deepEqual(styles, ["'self'", hashSource('a{}')]);
+  it('hashes <style> blocks, deduplicated and sorted', () => {
+    const styles = directive(buildCsp({ blocks: ['b{}', 'a{}', 'b{}'] }), 'style-src');
+    assert.deepEqual(styles, ["'self'", ...[hashSource('a{}'), hashSource('b{}')].sort()]);
   });
 
-  it('adds unsafe-hashes once attributes are present, deduplicated and sorted', () => {
-    const styles = directive(
-      buildCsp({ attributes: ['color:#F97583', 'color:#79B8FF', 'color:#F97583'] }),
-      'style-src',
-    );
-    assert.deepEqual(styles, [
-      "'self'",
-      "'unsafe-hashes'",
-      ...[hashSource('color:#79B8FF'), hashSource('color:#F97583')].sort(),
-    ]);
+  it('never allows inline style attributes, hashed or otherwise', () => {
+    const policy = buildCsp({ blocks: ['a{}'], attributes: ['color:#F97583'] });
+    assert.doesNotMatch(policy, /unsafe-hashes|unsafe-inline/);
+    assert.equal(directive(policy, 'style-src').length, 2);
   });
 
-  it('is stable regardless of the order styles are found in', () => {
-    assert.equal(
-      buildCsp({ blocks: ['b', 'a'], attributes: ['y', 'x'] }),
-      buildCsp({ blocks: ['a', 'b'], attributes: ['x', 'y'] }),
-    );
+  it('is stable regardless of the order blocks are found in', () => {
+    assert.equal(buildCsp({ blocks: ['b', 'a'] }), buildCsp({ blocks: ['a', 'b'] }));
   });
 
   it('allows the analytics origin for its script and its beacon only', () => {
@@ -121,8 +112,8 @@ describe('buildCsp', () => {
   });
 
   it('fails before exceeding the CloudFront CSP quota', () => {
-    const attributes = Array.from({ length: 40 }, (_, i) => `color:#${i}`);
-    assert.throws(() => buildCsp({ attributes }), new RegExp(String(MAX_CSP_LENGTH)));
+    const blocks = Array.from({ length: 40 }, (_, i) => `a{z-index:${i}}`);
+    assert.throws(() => buildCsp({ blocks }), new RegExp(String(MAX_CSP_LENGTH)));
   });
 });
 

@@ -113,8 +113,7 @@ pre {
 }
 
 /* Code blocks scroll in their own container so the page never scrolls
- * sideways. Shiki's own background is dropped in astro.config.mjs, so the
- * surface behind it carries the block. */
+ * sideways. */
 pre {
   overflow-x: auto;
   padding: var(--space-4);
@@ -124,14 +123,14 @@ pre {
 }
 
 /*
- * Shiki writes its theme background as an inline style on the <pre>, and an
- * inline style beats any class selector - so dropping it genuinely requires
- * !important. Decision: keep a proven syntax theme (github-dark) for the token
- * colours, discard its blue-grey #24292e ground, and let our green-biased
- * surface carry the block so code does not read as a patch from another site.
+ * Keep a proven syntax theme (github-dark) for the token colours, but discard
+ * its blue-grey #24292e ground and let our green-biased surface carry the
+ * block, so code does not read as a patch from another site. Shiki's ground
+ * arrives as the .sh-bg-24292e class (styles/shiki.css), which this selector
+ * outranks.
  */
 pre.astro-code {
-  background: var(--color-surface-raised) !important;
+  background: var(--color-surface-raised);
 }
 
 hr {

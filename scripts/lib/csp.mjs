@@ -4,10 +4,11 @@
  * so all of it is unit-tested directly.
  *
  * PLAN.md 3.5b/3.5c: script-src stays strictly 'self'. style-src carries the
- * sha256 of each inline <style> block (Astro's <Font> @font-face rules) and of
- * each distinct style="" value (Shiki's per-token colours). Hashed attributes
- * need 'unsafe-hashes', which permits exactly those values and nothing else -
- * far narrower than 'unsafe-inline'.
+ * sha256 of each inline <style> block (Astro's <Font> @font-face rules) and
+ * nothing else. Inline style="" attributes are not allowed at all: there is
+ * no 'unsafe-hashes', so a browser would drop them. Shiki's token colours are
+ * classes instead (site/src/lib/shiki-classes.ts), which keeps the policy
+ * independent of what posts contain.
  */
 import { createHash } from 'node:crypto';
 
@@ -47,12 +48,14 @@ function decodeAttribute(value) {
 }
 
 /**
- * Inline style sources in one HTML document.
+ * Inline style sources in one HTML document: <style> blocks to hash, and
+ * style="" attributes, which the caller rejects.
  *
  * <style> element contents are raw text and are hashed verbatim. Attributes
- * are looked for inside start tags only: text content cannot open a tag,
+ * are decoded the way a browser reads them, and looked for inside start tags
+ * only: text content cannot open a tag,
  * since a literal "<" in text is always escaped, so a post that merely talks
- * about style="..." does not widen the policy.
+ * about style="..." is not mistaken for one.
  */
 export function collectInlineStyles(html) {
   const blocks = [];
@@ -88,14 +91,8 @@ function originOf(src) {
  * new kind of resource fails loudly in `npm run preview` instead of quietly
  * inheriting a permissive default.
  */
-export function buildCsp({
-  blocks = [],
-  attributes = [],
-  analytics = { provider: 'none' },
-  turnstile = false,
-}) {
+export function buildCsp({ blocks = [], analytics = { provider: 'none' }, turnstile = false }) {
   const blockHashes = [...new Set(blocks.map(hashSource))].sort();
-  const attributeHashes = [...new Set(attributes.map(hashSource))].sort();
 
   const thirdParty = analytics.provider === 'none' ? [] : [originOf(analytics.src)];
   const challenge = turnstile ? [TURNSTILE_ORIGIN] : [];
@@ -103,14 +100,7 @@ export function buildCsp({
   const directives = [
     ['default-src', ["'none'"]],
     ['script-src', ["'self'", ...challenge, ...thirdParty]],
-    [
-      'style-src',
-      [
-        "'self'",
-        ...(attributeHashes.length > 0 ? ["'unsafe-hashes'"] : []),
-        ...[...new Set([...blockHashes, ...attributeHashes])].sort(),
-      ],
-    ],
+    ['style-src', ["'self'", ...blockHashes]],
     ['img-src', ["'self'"]],
     ['font-src', ["'self'"]],
     ['connect-src', ["'self'", ...thirdParty]],
@@ -130,7 +120,7 @@ export function buildCsp({
   if (policy.length > MAX_CSP_LENGTH) {
     throw new Error(
       `CSP is ${policy.length} characters; CloudFront allows ${MAX_CSP_LENGTH}. ` +
-        'Too many distinct inline styles - see PLAN.md 3.5c.',
+        'Too many distinct inline <style> blocks - see PLAN.md 3.5c.',
     );
   }
 

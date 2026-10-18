@@ -1,0 +1,97 @@
+/*
+ * Syntax colours for code blocks: the classes lib/shiki-classes.ts writes in
+ * place of Shiki's inline styles, so the CSP needs no hash per colour.
+ *
+ * These hex values are the github-dark theme's own palette, not design
+ * tokens: they come from a vendored theme and change only with it. The
+ * coverage test (lib/shiki-classes.test.mjs) reads the theme and fails if a
+ * colour it can emit has no rule here, or if a rule here is never emitted.
+ */
+
+/* Foreground colours */
+.sh-24292e {
+  color: #24292e;
+}
+.sh-2f363d {
+  color: #2f363d;
+}
+.sh-6a737d {
+  color: #6a737d;
+}
+.sh-79b8ff {
+  color: #79b8ff;
+}
+.sh-85e89d {
+  color: #85e89d;
+}
+.sh-9ecbff {
+  color: #9ecbff;
+}
+.sh-b392f0 {
+  color: #b392f0;
+}
+.sh-d1d5da {
+  color: #d1d5da;
+}
+.sh-dbedff {
+  color: #dbedff;
+}
+.sh-e1e4e8 {
+  color: #e1e4e8;
+}
+.sh-f97583 {
+  color: #f97583;
+}
+.sh-fdaeb7 {
+  color: #fdaeb7;
+}
+.sh-ffab70 {
+  color: #ffab70;
+}
+
+/* Backgrounds: diff markup, carriage returns, and the theme's own ground
+ * (which pre.astro-code in global.css then replaces with our surface). */
+.sh-bg-144620 {
+  background-color: #144620;
+}
+.sh-bg-24292e {
+  background-color: #24292e;
+}
+.sh-bg-79b8ff {
+  background-color: #79b8ff;
+}
+.sh-bg-86181d {
+  background-color: #86181d;
+}
+.sh-bg-c24e00 {
+  background-color: #c24e00;
+}
+.sh-bg-f97583 {
+  background-color: #f97583;
+}
+
+/* Font styles. Underline and strikethrough can combine on one token. */
+.sh-italic {
+  font-style: italic;
+}
+/* The site's own strong weight: Plex Mono ships only 400 and 600. */
+.sh-bold {
+  font-weight: var(--weight-strong);
+}
+.sh-underline {
+  text-decoration-line: underline;
+}
+.sh-line-through {
+  text-decoration-line: line-through;
+}
+.sh-underline.sh-line-through {
+  text-decoration-line: underline line-through;
+}
+
+/* Set by Astro's own transformer. */
+.sh-no-select {
+  user-select: none;
+}
+.sh-scroll {
+  overflow-x: auto;
+}

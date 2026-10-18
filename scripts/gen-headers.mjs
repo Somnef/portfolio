@@ -7,8 +7,11 @@
  *   node scripts/gen-headers.mjs --check   exit 1 if it is stale
  *
  * Runs against a finished build: the CSP's style hashes come from the
- * inline styles in site/dist, and its third-party origins from the analytics
- * entry in site/src/config/site.ts. Build first.
+ * inline <style> blocks in site/dist, and its third-party origins from the
+ * analytics entry in site/src/config/site.ts. Build first.
+ *
+ * Any inline style="" attribute in the build is an error, not a hash: the
+ * policy has no 'unsafe-hashes', so the browser would drop it.
  */
 import { readdir, readFile, writeFile } from 'node:fs/promises';
 import { join, relative } from 'node:path';
@@ -41,14 +44,24 @@ export async function generate() {
   }
 
   const blocks = [];
-  const attributes = [];
+  const attributes = new Map();
   for (const file of files) {
     const found = collectInlineStyles(await readFile(file, 'utf8'));
     blocks.push(...found.blocks);
-    attributes.push(...found.attributes);
+    for (const value of found.attributes) {
+      if (!attributes.has(value)) attributes.set(value, relative(root, file));
+    }
   }
 
-  const headers = buildHeaders({ blocks, attributes, analytics });
+  if (attributes.size > 0) {
+    const found = [...attributes].map(([value, file]) => `  style="${value}" (first in ${file})`);
+    throw new Error(
+      `Inline style attributes in the build, which the CSP would block:\n${found.join('\n')}\n` +
+        'Use a class instead. Code blocks map Shiki styles in site/src/lib/shiki-classes.ts.',
+    );
+  }
+
+  const headers = buildHeaders({ blocks, analytics });
 
   return `${JSON.stringify(
     {
@@ -76,7 +89,7 @@ async function main() {
     if (current !== expected) {
       console.error(
         'config/headers.json is stale for this build. Run `npm run headers` and commit the result.\n' +
-          'A new inline style (e.g. a Shiki token colour a new post introduced) changes the CSP.',
+          'Only the inline <style> blocks change it: the font configuration, or Google updating the font files.',
       );
       process.exitCode = 1;
       return;
