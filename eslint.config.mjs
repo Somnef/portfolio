@@ -16,15 +16,27 @@ export default tseslint.config(
   {
     // Build-time scripts run in Node, not the browser. Declared explicitly
     // rather than pulling in the `globals` package for one directory.
-    files: ['scripts/**/*.mjs'],
+    files: ['scripts/**/*.mjs', 'infra/**/*.mjs'],
     languageOptions: {
       globals: {
         Buffer: 'readonly',
         console: 'readonly',
         process: 'readonly',
         URL: 'readonly',
+        structuredClone: 'readonly',
         __dirname: 'readonly',
       },
+    },
+  },
+  {
+    // CloudFront Functions are plain scripts: the runtime calls a top-level
+    // handler() and accepts no module syntax, so the function is "unused" as
+    // far as the file itself can tell.
+    files: ['infra/**/functions/*.js'],
+    languageOptions: { sourceType: 'script' },
+    rules: {
+      'no-unused-vars': ['error', { varsIgnorePattern: '^handler$' }],
+      '@typescript-eslint/no-unused-vars': ['error', { varsIgnorePattern: '^handler$' }],
     },
   },
 );
