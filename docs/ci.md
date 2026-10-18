@@ -125,7 +125,7 @@ SITE_BUCKET=<bucket> DISTRIBUTION_ID=<id> scripts/deploy.sh
 Done once. The order matters where noted.
 
 **1. Repository variables and secrets.** `AWS_REGION` and the three
-`AWS_ROLE_*` secrets already exist from the OIDC phase.
+`AWS_ROLE_*` secrets already exist from the OIDC setup ([`oidc.md`](oidc.md)).
 
 ```sh
 gh variable set TF_STATE_BUCKET --body "<state bucket>"

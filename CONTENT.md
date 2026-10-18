@@ -216,7 +216,7 @@ counts match the config.
 ```sh
 npm run dev     # drafts visible, schema errors shown in the dev overlay
 npm run check   # types and content schemas
-npm run build   # what CI will do; fails on any invalid content
+npm run build   # what CI runs on every PR; fails on any invalid content
 ```
 
 Error messages name the file, the field, and what was wrong. For example:

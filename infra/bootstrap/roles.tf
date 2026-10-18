@@ -83,7 +83,7 @@ data "aws_iam_policy_document" "plan" {
   /*
    * Plans travel through the state bucket rather than as GitHub artifacts,
    * which on a public repo are world-downloadable, and a plan can contain
-   * sensitive values (PLAN.md 3.8/30).
+   * sensitive values (docs/ci.md).
    */
   statement {
     sid       = "UploadPlans"
