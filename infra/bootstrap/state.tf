@@ -103,6 +103,28 @@ resource "aws_s3_bucket_lifecycle_configuration" "state" {
     }
   }
 
+  /*
+   * Saved CI plans (scripts/ci/terraform-plan.sh). The apply job deletes the
+   * one it applies; a plan that is never approved would otherwise stay here
+   * for good, holding a snapshot of state and variable values.
+   */
+  rule {
+    id     = "expire-ci-plans"
+    status = "Enabled"
+
+    filter {
+      prefix = "plans/"
+    }
+
+    expiration {
+      days = 7
+    }
+
+    noncurrent_version_expiration {
+      noncurrent_days = 1
+    }
+  }
+
   # A lifecycle rule on noncurrent versions is meaningless until versioning
   # is on, and the provider warns if it is applied first.
   depends_on = [aws_s3_bucket_versioning.state]

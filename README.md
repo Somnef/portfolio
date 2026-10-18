@@ -74,18 +74,19 @@ surfacing later as a confusing build error.
 
 Run from the repository root.
 
-| Command                | Does                                  |
-| ---------------------- | ------------------------------------- |
-| `npm run dev`          | Dev server with hot reloading         |
-| `npm run build`        | Production build to `site/dist/`      |
-| `npm run check`        | Type and Astro diagnostics            |
-| `npm run lint`         | ESLint, including accessibility rules |
-| `npm run format`       | Format with Prettier                  |
-| `npm run format:check` | Verify formatting                     |
-| `npm test`             | Unit tests (CloudFront Function, CSP) |
-| `npm run headers`      | Regenerate `config/headers.json`      |
-| `npm run preview`      | Serve the build as CloudFront would   |
-| `npm run infra:check`  | Terraform fmt, validate, test, scans  |
+| Command                  | Does                                  |
+| ------------------------ | ------------------------------------- |
+| `npm run dev`            | Dev server with hot reloading         |
+| `npm run build`          | Production build to `site/dist/`      |
+| `npm run check`          | Type and Astro diagnostics            |
+| `npm run lint`           | ESLint, including accessibility rules |
+| `npm run format`         | Format with Prettier                  |
+| `npm run format:check`   | Verify formatting                     |
+| `npm test`               | Unit tests (CloudFront Function, CSP) |
+| `npm run headers`        | Regenerate `config/headers.json`      |
+| `npm run preview`        | Serve the build as CloudFront would   |
+| `npm run infra:check`    | Terraform fmt, validate, test, scans  |
+| `npm run lint:workflows` | actionlint and zizmor on `.github/`   |
 
 ### Checking a production build
 
@@ -109,6 +110,15 @@ the committed file is stale.
 
 `npm run infra:check` needs Terraform, tflint and trivy (all in
 `.tool-versions`). It reads no state and calls no AWS API.
+
+## Deployment
+
+Merging a pull request into `main` publishes the site. Every PR runs the
+checks above plus a read-only Terraform plan; the merge rebuilds, applies any
+infrastructure change after an explicit approval, and deploys. No AWS access
+keys exist: GitHub Actions authenticates through OIDC into three narrowly
+scoped roles. [`docs/ci.md`](docs/ci.md) has the pipeline, rollback and setup;
+[`docs/oidc.md`](docs/oidc.md) the roles.
 
 ## Layout
 

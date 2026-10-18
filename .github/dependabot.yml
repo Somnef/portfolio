@@ -1,0 +1,47 @@
+# Weekly, grouped update PRs. Each runs the full CI, Terraform plan aside:
+# Dependabot gets no OIDC token, so infra changes are planned on main instead,
+# before the gated apply.
+#
+# cooldown: a release must be two weeks old before it is proposed, so a
+# hijacked or broken version has time to be noticed and pulled first.
+
+version: 2
+
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 14
+    groups:
+      actions:
+        patterns: ['*']
+    commit-message:
+      prefix: chore(ci)
+
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 14
+    groups:
+      astro:
+        patterns: ['astro', '@astrojs/*', 'shiki']
+      tooling:
+        dependency-type: development
+    commit-message:
+      prefix: chore(deps)
+
+  - package-ecosystem: terraform
+    directories: ['/infra/bootstrap', '/infra/main']
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 14
+    groups:
+      providers:
+        patterns: ['*']
+    commit-message:
+      prefix: chore(infra)

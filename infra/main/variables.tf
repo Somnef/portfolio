@@ -109,10 +109,12 @@ variable "budget_limit_usd" {
   }
 }
 
-# Not committed anywhere: the repo is public. terraform.tfvars only.
+# Not committed anywhere: the repo is public. terraform.tfvars locally, the
+# MAIN_TFVARS secret in CI. Sensitive, so plan and apply output redact it.
 variable "budget_alert_email" {
   description = "Address the budget alerts are sent to."
   type        = string
+  sensitive   = true
 
   validation {
     condition     = can(regex("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$", var.budget_alert_email))

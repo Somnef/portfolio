@@ -1,0 +1,187 @@
+# Checks every pull request into main. Nothing here can change AWS: the only
+# credentials are the plan role's, which is read-only.
+#
+# The job names are the required status checks in the main branch ruleset;
+# renaming one means updating the ruleset too (docs/ci.md).
+
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+
+# Read-only by default; jobs widen it only where they must.
+permissions: {}
+
+concurrency:
+  group: ci-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+env:
+  ASTRO_TELEMETRY_DISABLED: '1'
+
+jobs:
+  site:
+    name: Site
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .tool-versions
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Formatting
+        run: npm run format:check
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Types and Astro diagnostics
+        run: npm run check
+
+      - name: Unit tests
+        run: npm test
+
+      - name: Build
+        run: npm run build
+
+      # A font change alters the inline <style> hashes; the committed headers
+      # must match, since Terraform builds the CloudFront policy from them.
+      - name: Security headers match the build
+        run: npm run headers:check
+
+  infra:
+    name: Terraform checks
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Read the pinned Terraform version
+        id: terraform
+        run: echo "version=$(awk '$1 == "terraform" { print $2 }' .tool-versions)" >> "${GITHUB_OUTPUT}"
+
+      # No wrapper: the scripts read terraform's exit codes and stdout directly.
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4.0.1
+        with:
+          terraform_version: ${{ steps.terraform.outputs.version }}
+          terraform_wrapper: false
+
+      - name: Set up TFLint
+        uses: terraform-linters/setup-tflint@6ffdbaa3be476b3431f7275c26966ef32ff60337 # v6.3.2
+        with:
+          tflint_version_file: .tool-versions
+
+      - name: Read the pinned Trivy version
+        id: trivy
+        run: echo "version=v$(awk '$1 == "trivy" { print $2 }' .tool-versions)" >> "${GITHUB_OUTPUT}"
+
+      - name: Set up Trivy
+        uses: aquasecurity/setup-trivy@81e514348e19b6112ce2a7e3ecbafe19c1e1f567 # v0.3.1
+        # Pinned in .tool-versions, which zizmor cannot follow.
+        with:
+          version: ${{ steps.trivy.outputs.version }} # zizmor: ignore[unpinned-tools]
+
+      # The same script as `npm run infra:check` locally. No backend, no AWS.
+      - name: fmt, validate, test, tflint, trivy
+        run: scripts/infra-check.sh
+        env:
+          # tflint --init downloads the AWS ruleset from GitHub releases.
+          GITHUB_TOKEN: ${{ github.token }}
+
+  workflows:
+    name: Workflow lint
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install actionlint
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          version="$(awk '$1 == "actionlint" { print $2 }' .tool-versions)"
+          dir="${RUNNER_TEMP}/actionlint"
+          gh release download "v${version}" --repo rhysd/actionlint --dir "${dir}" \
+            --pattern "actionlint_${version}_linux_amd64.tar.gz" \
+            --pattern "actionlint_${version}_checksums.txt"
+          (cd "${dir}" && sha256sum --check --ignore-missing "actionlint_${version}_checksums.txt")
+          tar -xzf "${dir}/actionlint_${version}_linux_amd64.tar.gz" -C "${dir}" actionlint
+          echo "${dir}" >> "${GITHUB_PATH}"
+
+      # Also runs shellcheck over every run: block (preinstalled on the runner).
+      - name: actionlint
+        run: actionlint
+
+      - name: zizmor
+        uses: zizmorcore/zizmor-action@cc914d7f3750a2d13d75c7f184a1060aa0e9d482 # v0.6.4
+        with:
+          version: 1.30.1
+          # Findings fail the job instead of going to code scanning, which
+          # would need security-events: write.
+          advanced-security: false
+
+  plan:
+    name: Terraform plan
+    # Pull requests from forks, and Dependabot's, get neither secrets nor an
+    # OIDC token. Their infra changes are planned again on main before any
+    # apply, so skipping here loses nothing.
+    if: >-
+      github.event.pull_request.head.repo.full_name == github.repository
+      && github.actor != 'dependabot[bot]'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Read the pinned Terraform version
+        id: terraform
+        run: echo "version=$(awk '$1 == "terraform" { print $2 }' .tool-versions)" >> "${GITHUB_OUTPUT}"
+
+      # No wrapper: the scripts read terraform's exit codes and stdout directly.
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4.0.1
+        with:
+          terraform_version: ${{ steps.terraform.outputs.version }}
+          terraform_wrapper: false
+
+      - name: Assume the plan role
+        uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_PLAN }}
+          aws-region: ${{ vars.AWS_REGION }}
+          mask-aws-account-id: true
+
+      # Speculative: no lock, so an open PR never blocks a release apply.
+      - name: Plan infra/main
+        run: scripts/ci/terraform-plan.sh
+        env:
+          TF_STATE_BUCKET: ${{ vars.TF_STATE_BUCKET }}
+          MAIN_TFVARS: ${{ secrets.MAIN_TFVARS }}
+          PLAN_LOCK: 'false'
