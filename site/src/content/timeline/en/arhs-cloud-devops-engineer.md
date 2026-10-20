@@ -14,7 +14,6 @@ tech:
   - Terraform
   - IAM
   - WAF
-avatarVariant: engineer
 ---
 
 Designing and operating multi-cloud infrastructure — AWS and Azure — with

@@ -73,7 +73,6 @@ projects: # optional, must exist
   - en/kubernetes-fault-tolerance
 posts: # optional, must exist
   - en/some-post
-avatarVariant: engineer # optional, see "Pixel avatar sprites"
 credentialUrl: https://... # optional, for kind: certification
 order: 1 # optional tie-break only
 ---
@@ -176,40 +175,6 @@ In `.mdx` files, use JSX comments:
 
 Getting these the wrong way round is not an error — the comment just renders as
 visible text on the page.
-
-## Pixel avatar sprites
-
-The avatar that travels alongside the timeline is decorative and
-non-essential: if the sprite files are missing, the site is unaffected.
-
-**Location:** `site/public/sprites/<variant>/`
-
-**Files:** one horizontal PNG strip per animation.
-
-| File       | What           |
-| ---------- | -------------- |
-| `idle.png` | Standing still |
-| `walk.png` | Walking        |
-
-**Requirements:**
-
-- Transparent background.
-- Side view, facing **right**. The code mirrors the sprite for leftward motion,
-  so do not supply a mirrored copy.
-- All frames the same size, laid out left to right in a single row.
-- Default frame size is 32×32 px — 4 idle frames, 6 walk frames.
-
-**Frame sizes and counts live in `site/src/config/avatar.json`**, not in the
-code, so different dimensions are a config edit rather than a code change.
-
-**Variants** let the avatar change with the era the timeline is showing. Set
-`avatarVariant: student` on a timeline entry and the sprite swaps to
-`site/public/sprites/student/` while that entry is in view. Entries without an
-`avatarVariant` keep whichever sprite was last in use. A variant naming a
-folder that does not exist degrades to the default sprite rather than breaking.
-
-Replacing the placeholder art is a drop-in file swap, as long as the frame
-counts match the config.
 
 ## Checking your work
 

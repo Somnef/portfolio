@@ -13,7 +13,6 @@ tech:
   - PyTorch
   - pandas
   - scikit-learn
-avatarVariant: student
 projects:
   - en/wildfire-spread-simulation
   - en/algeria-told-by-data
