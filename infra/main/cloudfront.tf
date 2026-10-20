@@ -4,7 +4,7 @@
  * Two cache behaviours:
  *   /_astro/*  content-hashed assets - a changed file has a new name, so
  *              they are cached for as long as CloudFront allows.
- *   default    everything else: HTML, the RSS feeds, the CV, the sprites.
+ *   default    everything else: HTML, the RSS feeds, the CV.
  *              Short-lived at the edge, and the deploy invalidates it.
  *
  * Phase 9 adds a third, /api/*, routed to the contact API.

@@ -18,7 +18,6 @@
     "headers": "node scripts/gen-headers.mjs",
     "headers:check": "node scripts/gen-headers.mjs --check",
     "preview": "node scripts/preview.mjs",
-    "sprites": "node scripts/gen-placeholder-sprites.mjs",
     "check": "npm run check --workspace site",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",

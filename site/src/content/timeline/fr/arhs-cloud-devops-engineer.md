@@ -14,7 +14,6 @@ tech:
   - Terraform
   - IAM
   - WAF
-avatarVariant: engineer
 ---
 
 Conception et exploitation d'infrastructures multi-cloud — AWS et Azure — avec

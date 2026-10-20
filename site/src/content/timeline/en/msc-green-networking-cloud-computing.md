@@ -13,7 +13,6 @@ tech:
   - Terraform
   - Kubernetes
   - Docker
-avatarVariant: student
 projects:
   - en/ddos-mitigation-aws-terraform
   - en/kubernetes-fault-tolerance

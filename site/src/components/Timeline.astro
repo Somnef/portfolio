@@ -1,5 +1,4 @@
 ---
-import PixelAvatar from './PixelAvatar.astro';
 import TimelineEntry from './TimelineEntry.astro';
 import { toLang, useTranslations } from '../i18n';
 import { byDateDesc, getLocalized } from '../lib/content';
@@ -16,8 +15,6 @@ const entries = (await getLocalized('timeline', lang)).sort(byDateDesc);
     <p>{t('journey.intro')}</p>
   </header>
 
-  <PixelAvatar />
-
   <ol class="entries">
     {entries.map((item, i) => (
       <TimelineEntry item={item} open={i === 0} />
@@ -25,58 +22,15 @@ const entries = (await getLocalized('timeline', lang)).sort(byDateDesc);
   </ol>
 </section>
 
-<script>
-  import '../islands/pixel-avatar';
-</script>
-
 <style>
   .journey {
     padding-block: var(--space-7);
-
-    /*
-     * The sprite walks *beside* the rail rather than on top of it: it is
-     * pushed left until its trailing edge clears the line by --avatar-gap, so
-     * the line and the entry dots sitting on it stay visible. The gap lives
-     * here with the rail geometry rather than in the avatar component because
-     * the two are measured against each other.
-     *
-     * That puts the sprite in the page gutter, left of the rail column, so
-     * the column width no longer bounds it. What keeps it off the text is now
-     * the offset itself - it is positioned from the line *away* from the
-     * content, so the gap can only grow as the sprite scales.
-     *
-     * Narrow screens get the smaller gap because there is less room between
-     * the line and the edge of the page to spend.
-     *
-     * Scaling is integer only - 1x, then 2x - because fractional scaling
-     * turns pixel art to mush.
-     */
     --rail-width: 2rem;
-    --avatar-scale: 1;
-    --avatar-gap: var(--space-1);
   }
 
   @media (min-width: 48rem) {
     .journey {
       --rail-width: 4rem;
-    }
-  }
-
-  /*
-   * The sprite doubles on its own breakpoint, not the rail's. The rail widens
-   * when the timeline has room for a wider column; the sprite may only double
-   * once the page gutter can hold it *beside* the line, which is a different
-   * question and happens later.
-   *
-   * Measured against this layout: a 2x sprite plus its gap needs 72px to the
-   * left of the line. The gutter first provides that at 800px, so doubling at
-   * 48rem/768px pushed the sprite 16px off-screen. 52rem leaves ~16px of
-   * margin rather than landing exactly on the limit.
-   */
-  @media (min-width: 52rem) {
-    .journey {
-      --avatar-scale: 2;
-      --avatar-gap: var(--space-2);
     }
   }
 

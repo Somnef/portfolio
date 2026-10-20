@@ -36,8 +36,6 @@ const timeline = defineCollection({
         tech: z.array(z.string().min(1)).default([]),
         projects: z.array(reference('projects')).default([]),
         posts: z.array(reference('writing')).default([]),
-        /** Sprite variant for the era this entry covers; see CONTENT.md. */
-        avatarVariant: z.string().min(1).optional(),
         /** Credential link, for kind: certification. */
         credentialUrl: z.url().optional(),
         /** Tie-break only; entries sort by startDate descending first. */
