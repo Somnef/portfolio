@@ -8,7 +8,8 @@
  *
  * Runs against a finished build: the CSP's style hashes come from the
  * inline <style> blocks in site/dist, and its third-party origins from the
- * analytics entry in site/src/config/site.ts. Build first.
+ * analytics entry in site/src/config/site.ts, plus Turnstile's for the
+ * contact form. Build first.
  *
  * Any inline style="" attribute in the build is an error, not a hash: the
  * policy has no 'unsafe-hashes', so the browser would drop it.
@@ -61,7 +62,9 @@ export async function generate() {
     );
   }
 
-  const headers = buildHeaders({ blocks, analytics });
+  // One policy covers every page, so the contact page's Turnstile origin is
+  // allowed site-wide; only that page loads it.
+  const headers = buildHeaders({ blocks, analytics, turnstile: true });
 
   return `${JSON.stringify(
     {

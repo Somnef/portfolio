@@ -51,8 +51,21 @@ jobs:
       - name: Install
         run: npm ci
 
+      # Without it the contact page would ship Cloudflare's dummy key, whose
+      # tokens the production secret rejects: a form that can never send.
+      - name: Require the Turnstile site key
+        env:
+          PUBLIC_TURNSTILE_SITE_KEY: ${{ vars.PUBLIC_TURNSTILE_SITE_KEY }}
+        run: |
+          if [ -z "${PUBLIC_TURNSTILE_SITE_KEY}" ]; then
+            echo "::error::Repository variable PUBLIC_TURNSTILE_SITE_KEY is not set."
+            exit 1
+          fi
+
       - name: Build
         run: npm run build
+        env:
+          PUBLIC_TURNSTILE_SITE_KEY: ${{ vars.PUBLIC_TURNSTILE_SITE_KEY }}
 
       - name: Security headers match the build
         run: npm run headers:check

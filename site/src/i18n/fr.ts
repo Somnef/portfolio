@@ -53,6 +53,7 @@ const fr: UIStrings = {
     "Cette entrée n'est pas encore traduite en français : la version anglaise est affichée.",
 
   'nav.writing': 'Écrits',
+  'nav.contact': 'Contact',
 
   'writing.heading': 'Écrits',
   'writing.intro': 'Tutoriels, articles et notes plus courtes. Filtrez par type ou par mot-clé.',
@@ -90,6 +91,38 @@ const fr: UIStrings = {
   'notFound.body':
     "Il n'y a rien à cette adresse. La page a peut-être été déplacée, ou le lien est erroné.",
   'notFound.home': "Retour à la page d'accueil",
+
+  'contact.heading': 'Contact',
+  'contact.intro':
+    'Une question sur un projet, une opportunité, ou quelque chose que vous avez lu ici ? Écrivez-moi, je vous répondrai par e-mail.',
+  'contact.name': 'Nom',
+  'contact.email': 'E-mail',
+  'contact.message': 'Message',
+  'contact.messageHint': "Jusqu'à {max} caractères.",
+  'contact.honeypot': 'Laissez ce champ vide',
+  'contact.submit': 'Envoyer le message',
+  'contact.sending': 'Envoi…',
+  'contact.noscript':
+    'Ce formulaire a besoin de JavaScript pour sa vérification anti-spam, désactivé dans votre navigateur.',
+  'contact.elsewhere': 'Vous préférez un autre moyen ? Je suis aussi sur',
+  'contact.success.heading': 'Message envoyé',
+  'contact.success.body': "Merci pour votre message. Je vous répondrai à l'adresse indiquée.",
+  'contact.error.name.required': 'Indiquez votre nom.',
+  'contact.error.email.required': 'Indiquez votre adresse e-mail.',
+  'contact.error.email.invalid': 'Indiquez une adresse e-mail du type nom@exemple.fr.',
+  'contact.error.message.required': 'Écrivez un message.',
+  'contact.error.tooLong': 'Ce texte est trop long.',
+  'contact.error.invalidChars': 'Ce texte contient des caractères qui ne peuvent pas être envoyés.',
+  'contact.error.fix': 'Veuillez corriger les champs signalés.',
+  'contact.error.challengePending':
+    "La vérification anti-spam n'est pas encore terminée. Patientez un instant, puis renvoyez.",
+  'contact.error.challenge': 'La vérification anti-spam a échoué. Veuillez réessayer.',
+  'contact.error.challengeLoad':
+    "La vérification anti-spam n'a pas pu se charger, le formulaire ne peut donc pas être envoyé. Un bloqueur de contenu empêche peut-être challenges.cloudflare.com.",
+  'contact.error.tooMany':
+    'Trop de messages sont envoyés en ce moment. Veuillez réessayer dans une minute.',
+  'contact.error.generic':
+    "Une erreur s'est produite et votre message n'a pas été envoyé. Veuillez réessayer plus tard.",
 };
 
 export default fr;

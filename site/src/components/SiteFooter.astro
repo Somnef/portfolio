@@ -1,5 +1,6 @@
 ---
 import CvDownload from './CvDownload.astro';
+import { getRelativeLocaleUrl } from 'astro:i18n';
 import ExternalLink from './ExternalLink.astro';
 import { site } from '../config/site';
 import { toLang, useTranslations } from '../i18n';
@@ -15,6 +16,7 @@ const year = new Date().getFullYear();
       © {year} {t('site.title')}
     </span>
     <span class="links">
+      <a href={getRelativeLocaleUrl(lang, '/contact/')}>{t('nav.contact')}</a>
       <CvDownload />
       <ExternalLink href={site.github} rel="me">
         GitHub

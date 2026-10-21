@@ -1,5 +1,5 @@
 // @ts-check
-import { defineConfig, fontProviders } from 'astro/config';
+import { defineConfig, envField, fontProviders } from 'astro/config';
 import mdx from '@astrojs/mdx';
 import { shikiStyleToClass } from './src/lib/shiki-classes.ts';
 
@@ -11,6 +11,22 @@ export default defineConfig({
   output: 'static',
 
   integrations: [mdx()],
+
+  /*
+   * The Turnstile site key is public by design: it is rendered into the
+   * contact page. Optional, because local builds use Cloudflare's dummy key
+   * (see ContactForm.astro); the release workflow refuses to build without
+   * the real one, from the PUBLIC_TURNSTILE_SITE_KEY repository variable.
+   */
+  env: {
+    schema: {
+      PUBLIC_TURNSTILE_SITE_KEY: envField.string({
+        context: 'server',
+        access: 'public',
+        optional: true,
+      }),
+    },
+  },
 
   /*
    * English is the default and is served unprefixed at /; French lives under
