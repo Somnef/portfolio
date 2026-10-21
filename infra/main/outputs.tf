@@ -34,3 +34,18 @@ output "name_servers" {
   description = "Name servers of the hosted zone this stack created, to set at the registrar. null otherwise."
   value       = local.domain_enabled && var.create_hosted_zone ? aws_route53_zone.site[0].name_servers : null
 }
+
+output "contact_api_endpoint" {
+  description = "The API Gateway endpoint behind /api/*. The site calls /api/contact on its own origin instead."
+  value       = aws_apigatewayv2_api.contact.api_endpoint
+}
+
+output "contact_function_name" {
+  description = "The contact Lambda, for reading its logs: aws logs tail /aws/lambda/<name>."
+  value       = aws_lambda_function.contact.function_name
+}
+
+output "ses_identity" {
+  description = "The SES identity contact emails are sent from: the domain (verified by DKIM) or one address."
+  value       = aws_sesv2_email_identity.contact.email_identity
+}

@@ -121,3 +121,104 @@ variable "budget_alert_email" {
     error_message = "budget_alert_email must be an email address."
   }
 }
+
+# --- Contact form ----------------------------------------------------------
+
+# Like budget_alert_email: terraform.tfvars locally, MAIN_TFVARS in CI, and
+# redacted from plan output. It ends up in the Lambda's environment.
+variable "contact_recipient_email" {
+  description = "The one address contact form submissions are sent to. Never a visitor's."
+  type        = string
+  sensitive   = true
+
+  validation {
+    condition     = can(regex("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$", var.contact_recipient_email))
+    error_message = "contact_recipient_email must be an email address."
+  }
+}
+
+variable "ses_from_email" {
+  description = <<-DESC
+    Sender of the contact emails. null means contact@<domain_name>, and the
+    whole domain is verified in SES through DKIM records in its zone. An
+    address on another domain is verified on its own instead (SES emails it
+    a link). Required when domain_name is null.
+  DESC
+  type        = string
+  default     = null
+
+  validation {
+    condition     = var.ses_from_email != null || var.domain_name != null
+    error_message = "Set ses_from_email: without domain_name there is no contact@<domain> to default to."
+  }
+
+  validation {
+    condition     = var.ses_from_email == null || can(regex("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$", var.ses_from_email))
+    error_message = "ses_from_email must be an email address or null."
+  }
+}
+
+variable "turnstile_secret_parameter_name" {
+  description = <<-DESC
+    Name of the SSM SecureString holding the Turnstile secret key, created by
+    hand (docs in terraform.tfvars.example). null means /<project>/turnstile-secret.
+    Only the name is used - the value never enters Terraform state.
+  DESC
+  type        = string
+  default     = null
+
+  validation {
+    condition     = var.turnstile_secret_parameter_name == null || startswith(coalesce(var.turnstile_secret_parameter_name, "/"), "/")
+    error_message = "turnstile_secret_parameter_name must be a path starting with /."
+  }
+}
+
+variable "contact_throttle_rate_limit" {
+  description = "Steady-state requests per second the contact API accepts, across all visitors."
+  type        = number
+  default     = 1
+
+  validation {
+    condition     = var.contact_throttle_rate_limit > 0
+    error_message = "contact_throttle_rate_limit must be positive."
+  }
+}
+
+variable "contact_throttle_burst_limit" {
+  description = "Requests the contact API accepts in a burst above the steady rate."
+  type        = number
+  default     = 5
+
+  validation {
+    condition     = var.contact_throttle_burst_limit >= 1 && floor(var.contact_throttle_burst_limit) == var.contact_throttle_burst_limit
+    error_message = "contact_throttle_burst_limit must be a whole number, at least 1."
+  }
+}
+
+/*
+ * Reserving concurrency is refused when it would leave the account fewer
+ * than 10 unreserved executions - which is every account still on the
+ * default quota of 10 (check: aws lambda get-account-settings). -1 removes
+ * the reservation; stage throttling then remains the cap.
+ */
+variable "contact_reserved_concurrency" {
+  description = "Reserved concurrency for the contact Lambda, which is also its ceiling. -1 for none."
+  type        = number
+  default     = 2
+
+  validation {
+    condition     = var.contact_reserved_concurrency == -1 || var.contact_reserved_concurrency >= 1
+    error_message = "contact_reserved_concurrency must be -1 (no reservation) or at least 1."
+  }
+}
+
+variable "log_retention_days" {
+  description = "Retention of the contact Lambda and API logs."
+  type        = number
+  default     = 14
+
+  validation {
+    condition     = contains([1, 3, 5, 7, 14, 30, 60, 90, 120, 150, 180, 365], var.log_retention_days)
+    error_message = "log_retention_days must be a value CloudWatch Logs accepts, up to 365."
+  }
+}

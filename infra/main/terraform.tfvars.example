@@ -35,3 +35,26 @@ enable_www_redirect = true
 
 budget_limit_usd   = 5
 budget_alert_email = "you@example.com"
+
+# --- Contact form ----------------------------------------------------------
+
+# The one address submissions are sent to. Sensitive: never commit it.
+contact_recipient_email = "you@example.com"
+
+# Sender. Omit for contact@<domain_name> (the domain is verified in SES
+# through DKIM records this stack writes). Required without a domain.
+# ses_from_email = "contact@example.com"
+
+# The Turnstile secret key lives in SSM, created by hand - Terraform reads
+# only its name, so the value never enters state:
+#   read -rs TS_SECRET && aws ssm put-parameter --region <aws_region> \
+#     --name /<project>/turnstile-secret --type SecureString \
+#     --value "$TS_SECRET" && unset TS_SECRET
+# turnstile_secret_parameter_name = "/portfolio/turnstile-secret"
+
+# Abuse and cost limits. Reserving concurrency fails on an account still on
+# Lambda's default quota of 10 (aws lambda get-account-settings); set -1 then.
+# contact_throttle_rate_limit  = 1
+# contact_throttle_burst_limit = 5
+# contact_reserved_concurrency = 2
+# log_retention_days           = 14

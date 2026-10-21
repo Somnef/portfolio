@@ -1,13 +1,12 @@
 /*
  * The CloudFront distribution in front of the site bucket.
  *
- * Two cache behaviours:
+ * Three cache behaviours:
+ *   /api/*     the contact API (contact.tf), never cached.
  *   /_astro/*  content-hashed assets - a changed file has a new name, so
  *              they are cached for as long as CloudFront allows.
  *   default    everything else: HTML, the RSS feeds, the CV.
  *              Short-lived at the edge, and the deploy invalidates it.
- *
- * Phase 9 adds a third, /api/*, routed to the contact API.
  */
 
 # Rewrites directory URLs to index.html and canonicalises host and path.
@@ -22,6 +21,40 @@ resource "aws_cloudfront_function" "viewer_request" {
 
 data "aws_cloudfront_cache_policy" "caching_optimized" {
   name = "Managed-CachingOptimized"
+}
+
+data "aws_cloudfront_cache_policy" "caching_disabled" {
+  name = "Managed-CachingDisabled"
+}
+
+/*
+ * What the contact API receives from a visitor's request. Not Host: API
+ * Gateway routes on its own hostname and rejects the site's. Not cookies or
+ * query strings: the handler reads neither.
+ *
+ * CloudFront-Viewer-Address is added by CloudFront itself (viewer IP and
+ * port), so unlike X-Forwarded-For a client cannot forge it; the handler
+ * passes the IP on to Turnstile.
+ */
+resource "aws_cloudfront_origin_request_policy" "contact_api" {
+  name    = "${var.project}-contact-api"
+  comment = "Contact API: the body's Content-Type and the viewer address, nothing else."
+
+  cookies_config {
+    cookie_behavior = "none"
+  }
+
+  headers_config {
+    header_behavior = "whitelist"
+
+    headers {
+      items = ["Content-Type", "CloudFront-Viewer-Address"]
+    }
+  }
+
+  query_strings_config {
+    query_string_behavior = "none"
+  }
 }
 
 /*
@@ -59,9 +92,8 @@ resource "aws_cloudfront_cache_policy" "html" {
 }
 
 /*
- * No WAF: the brief rules it out on cost, and there is nothing dynamic to
- * protect until the contact API exists, which has its own throttling,
- * reserved concurrency and Turnstile (Phase 9).
+ * No WAF: the brief rules it out on cost. The one dynamic path, the contact
+ * API, has its own throttling, reserved concurrency and Turnstile.
  *
  * No access logging: traffic is read from CloudFront's built-in console
  * reports, and logs would be a bucket of visitor IPs to look after.
@@ -88,6 +120,18 @@ resource "aws_cloudfront_distribution" "site" {
     origin_access_control_id = aws_cloudfront_origin_access_control.site.id
   }
 
+  origin {
+    origin_id   = "contact-api"
+    domain_name = trimprefix(aws_apigatewayv2_api.contact.api_endpoint, "https://")
+
+    custom_origin_config {
+      http_port              = 80
+      https_port             = 443
+      origin_protocol_policy = "https-only"
+      origin_ssl_protocols   = ["TLSv1.2"]
+    }
+  }
+
   default_cache_behavior {
     target_origin_id           = "site"
     viewer_protocol_policy     = "redirect-to-https"
@@ -101,6 +145,24 @@ resource "aws_cloudfront_distribution" "site" {
       event_type   = "viewer-request"
       function_arn = aws_cloudfront_function.viewer_request.arn
     }
+  }
+
+  /*
+   * The contact API. CloudFront only accepts fixed method sets, so GET and
+   * the rest pass through too; API Gateway has no route for them and its 404
+   * becomes the site's 404 page below. No function: the index rewrite is for
+   * site paths.
+   */
+  ordered_cache_behavior {
+    path_pattern               = "/api/*"
+    target_origin_id           = "contact-api"
+    viewer_protocol_policy     = "https-only"
+    allowed_methods            = ["DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT"]
+    cached_methods             = ["GET", "HEAD"]
+    compress                   = true
+    cache_policy_id            = data.aws_cloudfront_cache_policy.caching_disabled.id
+    origin_request_policy_id   = aws_cloudfront_origin_request_policy.contact_api.id
+    response_headers_policy_id = aws_cloudfront_response_headers_policy.security.id
   }
 
   # Hashed assets are always real files, so they skip the function.
@@ -118,8 +180,9 @@ resource "aws_cloudfront_distribution" "site" {
   /*
    * A missing key is a 404 from S3, not a 403, because the bucket policy
    * grants this distribution s3:ListBucket (see bucket_policy.tf). That keeps
-   * the mapping to 404 only, so a genuine 403 - from the contact API once it
-   * exists, say - is never dressed up as "page not found".
+   * the mapping to 404 only, so a genuine 403 - a refused Turnstile token
+   * from the contact API, say - is never dressed up as "page not found".
+   * The contact API itself never answers 404 from its one route.
    *
    * A short error TTL, so a page that is published moments after someone
    * requested it does not stay a 404 at that edge for long.

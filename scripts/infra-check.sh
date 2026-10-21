@@ -6,9 +6,15 @@
 #   npm run infra:check
 #
 # init runs with -backend=false, so nothing here reads or locks real state.
+#
+# infra/main hashes the contact Lambda's zip, so even validate needs it:
+# it is built first (reproducibly, so a stale one is never compared).
 set -euo pipefail
 
-cd "$(dirname "$0")/../infra"
+cd "$(dirname "$0")/.."
+npm run --silent build --workspace api/contact
+
+cd infra
 
 terraform fmt -check -recursive -diff
 
