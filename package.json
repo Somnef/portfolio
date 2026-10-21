@@ -10,7 +10,8 @@
     "npm": ">=11.0.0"
   },
   "workspaces": [
-    "site"
+    "site",
+    "api/contact"
   ],
   "scripts": {
     "dev": "npm run dev --workspace site",
@@ -18,7 +19,7 @@
     "headers": "node scripts/gen-headers.mjs",
     "headers:check": "node scripts/gen-headers.mjs --check",
     "preview": "node scripts/preview.mjs",
-    "check": "npm run check --workspace site",
+    "check": "npm run check --workspaces --if-present",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
