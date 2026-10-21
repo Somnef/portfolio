@@ -35,6 +35,11 @@ updates:
       astro:
         patterns: ['astro', '@astrojs/*', 'shiki']
         update-types: [minor, patch]
+      # The SDK publishes almost daily, one package per client; one PR for
+      # all of them. It changes the Lambda zip, so it plans a Lambda update.
+      aws-sdk:
+        patterns: ['@aws-sdk/*']
+        update-types: [minor, patch]
       tooling:
         dependency-type: development
         update-types: [minor, patch]

@@ -11,7 +11,12 @@
 #   TF_STATE_BUCKET, AWS_REGION   backend, from repository variables
 #   MAIN_TFVARS                   infra/main/terraform.tfvars, from a secret
 #   PLAN_LOCK                     "false" for speculative PR plans (default true)
-#   PLAN_S3_URI                   if set, the saved plan is uploaded there
+#   PLAN_S3_PREFIX                if set, the saved plan and the Lambda zip it
+#                                 was made with are uploaded under it
+#
+# The contact Lambda's zip must already be built (npm run build --workspace
+# api/contact): the plan records its hash, and the apply must upload those
+# exact bytes, so the zip travels with the plan.
 #
 # Writes changes=true|false to $GITHUB_OUTPUT.
 #
@@ -20,6 +25,12 @@
 set -euo pipefail
 
 cd "$(dirname "$0")/../../infra/main"
+
+bundle=../../api/contact/dist/contact.zip
+if [ ! -f "${bundle}" ]; then
+  echo "::error::${bundle#../../} is missing; build it with npm run build --workspace api/contact."
+  exit 1
+fi
 
 umask 077
 work="$(mktemp -d)"
@@ -61,8 +72,9 @@ changes=false
   fi
 } >>"${GITHUB_STEP_SUMMARY:-/dev/stdout}"
 
-if [ "${changes}" = true ] && [ -n "${PLAN_S3_URI:-}" ]; then
-  aws s3 cp --no-progress "${work}/tfplan" "${PLAN_S3_URI}"
+if [ "${changes}" = true ] && [ -n "${PLAN_S3_PREFIX:-}" ]; then
+  aws s3 cp --no-progress "${work}/tfplan" "${PLAN_S3_PREFIX}/tfplan"
+  aws s3 cp --no-progress "${bundle}" "${PLAN_S3_PREFIX}/contact.zip"
 fi
 
 echo "changes=${changes}" >>"${GITHUB_OUTPUT:-/dev/stdout}"

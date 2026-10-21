@@ -72,6 +72,16 @@ jobs:
         with:
           persist-credentials: false
 
+      # infra:check builds the contact Lambda's zip, which Terraform hashes.
+      - name: Set up Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .tool-versions
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
       - name: Read the pinned Terraform version
         id: terraform
         run: echo "version=$(awk '$1 == "terraform" { print $2 }' .tool-versions)" >> "${GITHUB_OUTPUT}"
@@ -159,6 +169,19 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+
+      - name: Set up Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .tool-versions
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      # The plan hashes it; the PR plan is speculative, so it is not kept.
+      - name: Build the contact Lambda
+        run: npm run build --workspace api/contact
 
       - name: Read the pinned Terraform version
         id: terraform

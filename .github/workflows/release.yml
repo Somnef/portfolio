@@ -81,6 +81,20 @@ jobs:
         with:
           persist-credentials: false
 
+      - name: Set up Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .tool-versions
+          package-manager-cache: false
+
+      - name: Install
+        run: npm ci
+
+      # Reproducible, so it matches what the PR planned; uploaded with the
+      # saved plan, and the apply job checks it against the plan's hash.
+      - name: Build the contact Lambda
+        run: npm run build --workspace api/contact
+
       - name: Read the pinned Terraform version
         id: terraform
         run: echo "version=$(awk '$1 == "terraform" { print $2 }' .tool-versions)" >> "${GITHUB_OUTPUT}"
@@ -105,7 +119,7 @@ jobs:
         env:
           TF_STATE_BUCKET: ${{ vars.TF_STATE_BUCKET }}
           MAIN_TFVARS: ${{ secrets.MAIN_TFVARS }}
-          PLAN_S3_URI: s3://${{ vars.TF_STATE_BUCKET }}/plans/${{ github.run_id }}-${{ github.run_attempt }}/tfplan
+          PLAN_S3_PREFIX: s3://${{ vars.TF_STATE_BUCKET }}/plans/${{ github.run_id }}-${{ github.run_attempt }}
 
   apply:
     name: Terraform apply
@@ -146,7 +160,7 @@ jobs:
         run: scripts/ci/terraform-apply.sh
         env:
           TF_STATE_BUCKET: ${{ vars.TF_STATE_BUCKET }}
-          PLAN_S3_URI: s3://${{ vars.TF_STATE_BUCKET }}/plans/${{ github.run_id }}-${{ github.run_attempt }}/tfplan
+          PLAN_S3_PREFIX: s3://${{ vars.TF_STATE_BUCKET }}/plans/${{ github.run_id }}-${{ github.run_attempt }}
 
   deploy:
     name: Deploy site

@@ -59,13 +59,17 @@ On every push to `main`:
 
 1. **Build** builds the site, checks `headers.json` against it and keeps the
    output as an artifact. The deploy ships exactly this build.
-2. **Terraform plan** plans `infra/main` with the state lock, and uploads the
-   saved plan to `s3://<state bucket>/plans/<run>-<attempt>/tfplan`. Not a
-   GitHub artifact: those are downloadable by anyone on a public repository.
+2. **Terraform plan** builds the contact Lambda's zip, plans `infra/main`
+   with the state lock, and uploads the saved plan and that zip to
+   `s3://<state bucket>/plans/<run>-<attempt>/`. Not a GitHub artifact:
+   those are downloadable by anyone on a public repository. The zip is
+   reproducible (`api/contact/scripts/zip.mjs`), so an unchanged handler
+   never shows up as a Lambda change.
 3. **Terraform apply** runs only if the plan has changes. It waits in the
    `infra` environment for your approval: read the plan summary on the run
    page, then approve or reject. It applies the saved plan, never a fresh one,
-   and deletes it afterwards. Unapproved plans expire after 7 days.
+   with the zip it was planned with (its hash is checked against the plan
+   first), and deletes both afterwards. Unapproved plans expire after 7 days.
 4. **Deploy site** runs after the apply, or straight after the plan when there
    is nothing to apply. A failed or rejected apply blocks it.
 
