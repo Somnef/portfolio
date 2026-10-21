@@ -14,7 +14,9 @@
     "api/contact"
   ],
   "scripts": {
-    "dev": "npm run dev --workspace site",
+    "dev": "concurrently --names site,api --prefix-colors green,cyan --kill-others-on-fail \"npm:dev:site\" \"npm:dev:api\"",
+    "dev:site": "npm run dev --workspace site",
+    "dev:api": "node --watch --env-file-if-exists=api/contact/.env scripts/dev-api.mjs",
     "build": "npm run build --workspace site",
     "headers": "node scripts/gen-headers.mjs",
     "headers:check": "node scripts/gen-headers.mjs --check",
@@ -30,6 +32,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "concurrently": "^10.0.6",
     "eslint": "^10.13.0",
     "eslint-plugin-astro": "^3.2.1",
     "eslint-plugin-jsx-a11y-x": "^0.2.0",

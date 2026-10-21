@@ -105,6 +105,13 @@ export default defineConfig({
     build: {
       assetsInlineLimit: 0,
     },
+    // The contact API, as CloudFront's /api/* behaviour routes it in
+    // production: same origin, so no CORS. `npm run dev` starts both.
+    server: {
+      proxy: {
+        '/api/': `http://127.0.0.1:${process.env.CONTACT_API_PORT ?? 8787}`,
+      },
+    },
   },
 
   markdown: {
