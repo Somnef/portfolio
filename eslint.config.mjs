@@ -22,6 +22,7 @@ export default tseslint.config(
         Buffer: 'readonly',
         console: 'readonly',
         process: 'readonly',
+        Response: 'readonly',
         URL: 'readonly',
         structuredClone: 'readonly',
         __dirname: 'readonly',
