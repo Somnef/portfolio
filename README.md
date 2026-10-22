@@ -113,8 +113,9 @@ shows up in the browser console here, before a deploy.
 The CSP allows inline `<style>` blocks by hash, and only the font loader emits
 those, so content never changes the policy. Code highlighting uses classes
 (`site/src/styles/shiki.css`) rather than inline `style=""` attributes, which
-the CSP does not allow and header generation rejects. The hashes change only
-when the font configuration does, or when Google updates the font files:
+the CSP does not allow and header generation rejects. The font files are
+committed (`site/src/assets/fonts/`), so the build makes no network call and
+the hashes change only when the font files or their configuration do:
 `npm run headers` regenerates them, and CI's `npm run headers:check` fails if
 the committed file is stale.
 

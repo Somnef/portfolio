@@ -3,6 +3,39 @@ import { defineConfig, envField, fontProviders } from 'astro/config';
 import mdx from '@astrojs/mdx';
 import { shikiStyleToClass } from './src/lib/shiki-classes.ts';
 
+/**
+ * What every committed font face shares: swap, and Google's "latin"
+ * unicode-range, which the files are cut to. Declaring it keeps the CSS the
+ * same as what the google provider generated.
+ */
+/** @type {{ display: 'swap', unicodeRange: [string, ...string[]] }} */
+const latin = {
+  display: 'swap',
+  unicodeRange: [
+    'U+0000-00FF',
+    'U+0131',
+    'U+0152-0153',
+    'U+02BB-02BC',
+    'U+02C6',
+    'U+02DA',
+    'U+02DC',
+    'U+0304',
+    'U+0308',
+    'U+0329',
+    'U+2000-206F',
+    'U+20AC',
+    'U+2122',
+    'U+2191',
+    'U+2193',
+    'U+2212',
+    'U+2215',
+    'U+FEFF',
+    'U+FFFD',
+  ],
+};
+
+const fonts = './src/assets/fonts';
+
 export default defineConfig({
   // Drives canonical URLs, hreflang alternates and the RSS feed's absolute
   // links. Terraform's `domain_name` variable must match this value, since
@@ -47,21 +80,28 @@ export default defineConfig({
   },
 
   /*
-   * Fonts are self-hosted. The google provider downloads the files at BUILD
-   * time and serves them from our own origin, so the browser never calls
-   * fonts.googleapis.com or fonts.gstatic.com at runtime - which is what lets
-   * the CSP stay strict (no third-party font-src).
+   * Fonts are self-hosted from files committed in src/assets/fonts/, so the
+   * browser never calls fonts.googleapis.com or fonts.gstatic.com - which is
+   * what lets the CSP stay strict (no third-party font-src).
+   *
+   * They are committed rather than downloaded at build time (the google
+   * provider) because the generated @font-face CSS is inlined, and the CSP
+   * allows it by hash: a build that fetched slightly different files or CSS
+   * from Google failed the header check with no change of ours. From disk,
+   * the same commit always builds the same CSS. The files are the ones
+   * Google served (OFL, licence alongside); to update them, replace the
+   * files, then run npm run build && npm run headers.
    *
    * IBM Plex Sans + IBM Plex Mono: one family, two voices. Mono carries
    * headings, labels and dates; sans carries body text.
    *
-   * IBM Plex Mono has no variable build, so both are loaded as static weights.
-   * Only 400 and 600 are used anywhere in the design, so only those ship.
+   * Plex Sans is one variable file per style, declared at the only two
+   * weights the design uses, 400 and 600. Plex Mono has no variable build,
+   * so it is one static file per weight.
    *
-   * subsets: ['latin'] only. Google's latin range already covers U+0152-0153
-   * (the French OE ligature) along with all accented Latin-1, so latin-ext
-   * would only add Eastern-European glyphs this site never renders - verified
-   * against the generated unicode-range declarations.
+   * latin subset only. It already covers U+0152-0153 (the French OE
+   * ligature) along with all accented Latin-1, so latin-ext would only add
+   * Eastern-European glyphs this site never renders.
    *
    * No preload: it is per-family and all-variants, which meant 8 blocking font
    * requests on first paint including italics most pages never use. Without
@@ -71,23 +111,32 @@ export default defineConfig({
    */
   fonts: [
     {
-      provider: fontProviders.google(),
+      provider: fontProviders.local(),
       name: 'IBM Plex Sans',
       cssVariable: '--font-sans',
-      weights: [400, 600],
-      styles: ['normal', 'italic'],
-      subsets: ['latin'],
+      options: {
+        // One variable file per style, declared at the two weights used.
+        variants: [
+          { ...latin, weight: 400, style: 'normal', src: [`${fonts}/plex-sans-normal.woff2`] },
+          { ...latin, weight: 600, style: 'normal', src: [`${fonts}/plex-sans-normal.woff2`] },
+          { ...latin, weight: 400, style: 'italic', src: [`${fonts}/plex-sans-italic.woff2`] },
+          { ...latin, weight: 600, style: 'italic', src: [`${fonts}/plex-sans-italic.woff2`] },
+        ],
+      },
       fallbacks: ['system-ui', '-apple-system', 'Segoe UI', 'sans-serif'],
       // Metric-adjusted fallback, so the swap does not shift layout.
       optimizedFallbacks: true,
     },
     {
-      provider: fontProviders.google(),
+      provider: fontProviders.local(),
       name: 'IBM Plex Mono',
       cssVariable: '--font-mono',
-      weights: [400, 600],
-      styles: ['normal'],
-      subsets: ['latin'],
+      options: {
+        variants: [
+          { ...latin, weight: 400, style: 'normal', src: [`${fonts}/plex-mono-400.woff2`] },
+          { ...latin, weight: 600, style: 'normal', src: [`${fonts}/plex-mono-600.woff2`] },
+        ],
+      },
       fallbacks: ['ui-monospace', 'SFMono-Regular', 'Consolas', 'monospace'],
       optimizedFallbacks: true,
     },

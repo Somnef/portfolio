@@ -75,8 +75,8 @@ On every push to `main`:
 
 Apply goes first because the site can depend on it: the CSP's font hashes
 live in the CloudFront headers policy, so pages built with new fonts need
-the new policy. Posts no longer change the CSP; only the font configuration,
-or Google updating the font files, does.
+the new policy. Posts never change the CSP; only a change to the committed
+font files or their configuration does.
 
 ### What the deploy sets
 
@@ -224,5 +224,5 @@ tar -xzf /tmp/zizmor/zizmor-x86_64-unknown-linux-gnu.tar.gz -C ~/.local/bin zizm
 | `Error acquiring the state lock`                          | Another plan or apply holds it. Wait; if a run died holding it, `terraform force-unlock <id>` locally                                    |
 | Apply job waiting                                         | That is the gate. Review the plan summary, then approve in the run page                                                                  |
 | Deploy skipped                                            | The apply failed or was rejected. Nothing was published                                                                                  |
-| `headers:check` fails with no change of yours             | Google updated the font files, changing the `<style>` hashes. Run `npm run build && npm run headers` and commit `config/headers.json`    |
+| `headers:check` fails                                     | The font files or their configuration changed. Run `npm run build && npm run headers` and commit `config/headers.json`                   |
 | `Inline style attributes in the build`                    | A component or plugin emits `style=""`, which the CSP blocks. Use a class                                                                |
