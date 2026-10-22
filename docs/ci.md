@@ -136,12 +136,16 @@ gh variable set TF_STATE_BUCKET --body "<state bucket>"
 gh variable set SITE_BUCKET --body "<site bucket>"
 gh variable set CLOUDFRONT_DISTRIBUTION_ID --body "$(terraform -chdir=infra/main output -raw distribution_id)"
 gh variable set SITE_URL --body "https://<domain>"
+gh variable set PUBLIC_TURNSTILE_SITE_KEY --body "<site key>"
 gh secret set MAIN_TFVARS < infra/main/terraform.tfvars
 ```
 
 `MAIN_TFVARS` is the whole `terraform.tfvars`, so CI plans with exactly the
 values you would locally. **After editing the local file, set it again**, or
 CI keeps planning with the old values.
+
+The contact form needs a Turnstile widget, its secret in SSM and the SES
+recipient before its first apply: [`contact.md`](contact.md#setup).
 
 **2. The `infra` environment.** Main only, and you as required reviewer.
 Self-review must stay allowed: on a solo repository you are both the person

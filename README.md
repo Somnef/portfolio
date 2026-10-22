@@ -129,7 +129,9 @@ checks above plus a read-only Terraform plan; the merge rebuilds, applies any
 infrastructure change after an explicit approval, and deploys. No AWS access
 keys exist: GitHub Actions authenticates through OIDC into three narrowly
 scoped roles. [`docs/ci.md`](docs/ci.md) has the pipeline, rollback and setup;
-[`docs/oidc.md`](docs/oidc.md) the roles.
+[`docs/oidc.md`](docs/oidc.md) the roles;
+[`docs/contact.md`](docs/contact.md) the contact form's setup and how to
+rotate its Turnstile secret.
 
 ## Layout
 
