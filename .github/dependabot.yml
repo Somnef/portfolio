@@ -48,6 +48,11 @@ updates:
       # TypeScript 7.0"). Lift this once @astrojs/check supports it.
       - dependency-name: typescript
         update-types: ['version-update:semver-major']
+      # Node's types must match the runtime: Node 24 locally (.tool-versions)
+      # and nodejs24.x in Lambda. A newer major would type-check code that
+      # calls APIs Lambda does not have. Move it with the runtime, by hand.
+      - dependency-name: '@types/node'
+        update-types: ['version-update:semver-major']
     commit-message:
       prefix: chore(deps)
 
