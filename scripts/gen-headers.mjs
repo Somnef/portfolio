@@ -92,7 +92,7 @@ async function main() {
     if (current !== expected) {
       console.error(
         'config/headers.json is stale for this build. Run `npm run headers` and commit the result.\n' +
-          'Only the inline <style> blocks change it: the font configuration, or Google updating the font files.',
+          'Only the inline <style> blocks change it: the committed font files or their configuration.',
       );
       process.exitCode = 1;
       return;
