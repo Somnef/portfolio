@@ -12,13 +12,17 @@
  *   4. every response carries the headers in config/headers.json - the file
  *      Terraform turns into the response headers policy.
  *
+ * /api/* skips all of that and goes to the local contact API (npm run
+ * dev:api), as CloudFront's /api/* behaviour sends it to API Gateway - still
+ * with the security headers, which the distribution adds there too.
+ *
  * So a CSP violation shows up here, in the browser console, before a deploy.
  * The server refuses to start if headers.json is stale for the build it is
  * serving, since then it would be checking the wrong policy.
  */
 import { createReadStream } from 'node:fs';
 import { readFile, stat } from 'node:fs/promises';
-import { createServer } from 'node:http';
+import { createServer, request } from 'node:http';
 import { extname, join, normalize, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { generate, headersPath } from './gen-headers.mjs';
@@ -34,6 +38,7 @@ const functionPath = join(root, 'infra', 'main', 'functions', 'viewer-request.js
 // alongside this.
 const port = Number(process.env.PORT ?? 4500);
 const host = process.env.HOST ?? '0.0.0.0';
+const apiPort = Number(process.env.CONTACT_API_PORT ?? 8787);
 
 const TYPES = {
   '.css': 'text/css; charset=utf-8',
@@ -113,7 +118,40 @@ function send(res, status, path) {
   createReadStream(path).pipe(res);
 }
 
+/** Forwards a request to the local contact API, as the /api/* behaviour does. */
+function proxyToApi(req, res) {
+  const upstream = request(
+    {
+      host: '127.0.0.1',
+      port: apiPort,
+      method: req.method,
+      path: req.url,
+      // CloudFront forwards only what the origin request policy lists.
+      headers: {
+        'content-type': req.headers['content-type'] ?? '',
+        'content-length': req.headers['content-length'] ?? '0',
+      },
+    },
+    (response) => {
+      res.writeHead(response.statusCode ?? 502, { ...response.headers, ...securityHeaders });
+      response.pipe(res);
+      log(req, response.statusCode, 'contact API');
+    },
+  );
+  upstream.on('error', () => {
+    res.writeHead(502, { ...securityHeaders, 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ message: 'Contact API not running: npm run dev:api' }));
+    log(req, 502, 'contact API not running');
+  });
+  req.pipe(upstream);
+}
+
 const server = createServer(async (req, res) => {
+  if (req.url?.startsWith('/api/')) {
+    proxyToApi(req, res);
+    return;
+  }
+
   // Concatenated, not resolved: new URL('//evil', base) would read "//evil"
   // as a host, hiding exactly the path the function has to defend against.
   const url = new URL(`http://preview.local${req.url ?? '/'}`);

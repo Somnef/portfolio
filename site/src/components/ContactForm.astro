@@ -1,0 +1,294 @@
+---
+import { PUBLIC_TURNSTILE_SITE_KEY } from 'astro:env/server';
+import ExternalLink from './ExternalLink.astro';
+import { LIMITS } from '../../../api/contact/src/limits';
+import { site } from '../config/site';
+import { toLang, useTranslations } from '../i18n';
+
+const lang = toLang(Astro.currentLocale);
+const t = useTranslations(lang);
+
+/*
+ * Cloudflare's dummy site key, which always passes and pairs with the dummy
+ * secret the local API uses. Production builds never get here: the release
+ * workflow fails without the real key.
+ */
+const siteKey = PUBLIC_TURNSTILE_SITE_KEY || '1x00000000000000000000AA';
+
+// Everything the island says, resolved here so it carries no dictionary.
+const messages = {
+  fields: {
+    name: {
+      required: t('contact.error.name.required'),
+      tooLong: t('contact.error.tooLong'),
+      invalid: t('contact.error.invalidChars'),
+    },
+    email: {
+      required: t('contact.error.email.required'),
+      tooLong: t('contact.error.tooLong'),
+      invalid: t('contact.error.email.invalid'),
+    },
+    message: {
+      required: t('contact.error.message.required'),
+      tooLong: t('contact.error.tooLong'),
+      invalid: t('contact.error.invalidChars'),
+    },
+  },
+  status: {
+    fix: t('contact.error.fix'),
+    sending: t('contact.sending'),
+    challengePending: t('contact.error.challengePending'),
+    challenge: t('contact.error.challenge'),
+    challengeLoad: t('contact.error.challengeLoad'),
+    tooMany: t('contact.error.tooMany'),
+    generic: t('contact.error.generic'),
+  },
+};
+
+const messageHint = t('contact.messageHint').replace(
+  '{max}',
+  new Intl.NumberFormat(lang).format(LIMITS.messageMax),
+);
+---
+
+{/*
+ * Progressive enhancement, in reverse of the usual order: the form cannot
+ * work without JavaScript (the spam check is a script, and the API takes
+ * JSON only), so it starts disabled and the island enables it. With
+ * scripting off, the controls stay inert, nothing can be submitted as a
+ * GET full of personal details, and the noscript notice explains why.
+ */}
+<form
+  class="contact-form"
+  data-contact-form
+  data-sitekey={siteKey}
+  data-lang={lang}
+  data-messages={JSON.stringify(messages)}
+  novalidate
+>
+  <noscript>
+    <p class="notice">{t('contact.noscript')}</p>
+  </noscript>
+
+  <fieldset disabled data-fields>
+    <div class="field">
+      <label for="contact-name">{t('contact.name')}</label>
+      <input
+        id="contact-name"
+        name="name"
+        type="text"
+        autocomplete="name"
+        required
+        maxlength={LIMITS.nameMax}
+        aria-describedby="contact-name-error"
+      />
+      <p id="contact-name-error" class="error" data-error-for="name" hidden></p>
+    </div>
+
+    <div class="field">
+      <label for="contact-email">{t('contact.email')}</label>
+      <input
+        id="contact-email"
+        name="email"
+        type="email"
+        autocomplete="email"
+        spellcheck="false"
+        required
+        maxlength={LIMITS.emailMax}
+        aria-describedby="contact-email-error"
+      />
+      <p id="contact-email-error" class="error" data-error-for="email" hidden></p>
+    </div>
+
+    <div class="field">
+      <label for="contact-message">{t('contact.message')}</label>
+      <textarea
+        id="contact-message"
+        name="message"
+        rows="8"
+        required
+        maxlength={LIMITS.messageMax}
+        aria-describedby="contact-message-hint contact-message-error"
+      ></textarea>
+      <p id="contact-message-hint" class="hint">
+        {messageHint}
+      </p>
+      <p id="contact-message-error" class="error" data-error-for="message" hidden></p>
+    </div>
+
+    {/*
+     * Honeypot. Off-screen rather than display:none (some bots skip hidden
+     * fields), out of the tab order, and hidden from assistive technology
+     * so no person is ever asked to fill it.
+     */}
+    <div class="honeypot" aria-hidden="true">
+      <label for="contact-website">{t('contact.honeypot')}</label>
+      <input id="contact-website" name="website" type="text" tabindex="-1" autocomplete="off" />
+    </div>
+
+    <div class="challenge" data-turnstile></div>
+
+    <button type="submit" class="submit" data-submit>
+      {t('contact.submit')}
+    </button>
+  </fieldset>
+
+  <p class="status" role="status" data-status></p>
+</form>
+
+<div class="success" data-success tabindex="-1" hidden>
+  <h2>{t('contact.success.heading')}</h2>
+  <p>{t('contact.success.body')}</p>
+</div>
+
+<p class="elsewhere">
+  {t('contact.elsewhere')}{' '}
+  <ExternalLink href={site.linkedin} rel="me">
+    LinkedIn
+  </ExternalLink>
+  .
+</p>
+
+<script>
+  import '../islands/contact-form';
+</script>
+
+<style>
+  .contact-form {
+    max-width: var(--width-content);
+  }
+
+  fieldset {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-5);
+    margin: 0;
+    padding: 0;
+    border: 0;
+    min-width: 0;
+  }
+
+  .notice {
+    margin-block-end: var(--space-5);
+    padding: var(--space-4);
+    border: var(--border-width) solid var(--color-border-control);
+    border-radius: var(--radius-md);
+    background: var(--color-surface);
+  }
+
+  .field {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+
+  label {
+    font-family: var(--font-mono);
+    font-size: var(--text-sm);
+    font-weight: var(--weight-strong);
+  }
+
+  input,
+  textarea {
+    width: 100%;
+    padding: var(--space-3);
+    background: var(--color-surface);
+    border: var(--border-width) solid var(--color-border-control);
+    border-radius: var(--radius-md);
+    line-height: var(--leading-snug);
+  }
+
+  textarea {
+    resize: vertical;
+    min-height: 10rem;
+  }
+
+  input[aria-invalid='true'],
+  textarea[aria-invalid='true'] {
+    border-color: var(--color-error);
+  }
+
+  fieldset:disabled input,
+  fieldset:disabled textarea,
+  fieldset:disabled .submit {
+    cursor: not-allowed;
+    opacity: 0.6;
+  }
+
+  .hint {
+    font-size: var(--text-sm);
+    color: var(--color-text-muted);
+  }
+
+  .error {
+    font-size: var(--text-sm);
+    color: var(--color-error);
+  }
+
+  .honeypot {
+    position: absolute;
+    inset-inline-start: -10000px;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+  }
+
+  /* Turnstile's fixed-size iframe; reserve its height so the button does
+     not jump when the widget appears. */
+  .challenge {
+    min-height: 65px;
+  }
+
+  .submit {
+    align-self: flex-start;
+    padding: var(--space-3) var(--space-5);
+    background: var(--color-accent);
+    color: var(--color-on-accent);
+    border: 0;
+    border-radius: var(--radius-md);
+    font-family: var(--font-mono);
+    font-size: var(--text-sm);
+    font-weight: var(--weight-strong);
+    cursor: pointer;
+    transition:
+      background var(--duration-fast) var(--ease),
+      color var(--duration-fast) var(--ease);
+  }
+
+  .submit:hover {
+    background: var(--color-accent-dim);
+    color: var(--color-text);
+  }
+
+  .submit[aria-disabled='true'] {
+    cursor: progress;
+    opacity: 0.6;
+  }
+
+  .status:not(:empty) {
+    margin-block-start: var(--space-5);
+  }
+
+  .status[data-tone='error'] {
+    color: var(--color-error);
+  }
+
+  .success {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    padding: var(--space-5);
+    border: var(--border-width) solid var(--color-accent-dim);
+    border-radius: var(--radius-md);
+    background: var(--color-surface);
+  }
+
+  .success[hidden] {
+    display: none;
+  }
+
+  .elsewhere {
+    margin-block-start: var(--space-7);
+    color: var(--color-text-muted);
+  }
+</style>

@@ -1,0 +1,20 @@
+{
+  // Type-check only. Node runs the .ts sources directly (type stripping) for
+  // tests and the local API; esbuild bundles them for Lambda. So the code is
+  // limited to erasable syntax - no enums, namespaces or parameter properties.
+  "compilerOptions": {
+    "target": "es2024",
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "lib": ["es2024"],
+    "types": ["node", "aws-lambda"],
+    "strict": true,
+    "noEmit": true,
+    "allowImportingTsExtensions": true,
+    "erasableSyntaxOnly": true,
+    "verbatimModuleSyntax": true,
+    "noUncheckedIndexedAccess": true,
+    "skipLibCheck": true
+  },
+  "include": ["src/**/*.ts"]
+}

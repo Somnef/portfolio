@@ -16,7 +16,7 @@ redeploys the site.
 | Styling        | Plain CSS with custom-property design tokens                       |
 | Interactivity  | Small vanilla TypeScript islands, no framework runtime             |
 | Contact form   | TypeScript Lambda on Node.js 24 behind API Gateway, SES            |
-| Infrastructure | Terraform — S3, CloudFront, ACM, Route 53                          |
+| Infrastructure | Terraform — S3, CloudFront, ACM, Route 53, API Gateway, Lambda     |
 | CI/CD          | GitHub Actions with OIDC, no long-lived AWS credentials            |
 
 ## Requirements
@@ -37,8 +37,16 @@ npm install
 npm run dev
 ```
 
-The dev server runs at `http://localhost:4321` with hot reloading for
-components, styles and content.
+This starts two processes: the Astro dev server at `http://localhost:4321`,
+with hot reloading for components, styles and content, and the local contact
+API on port 8787, which runs the real Lambda handler and restarts when it
+changes. The dev server proxies `/api/*` to it, as CloudFront does in
+production.
+
+Locally the contact form uses Cloudflare's Turnstile test keys and prints the
+email it would send instead of calling SES, so the whole form works with no
+accounts and no keys. `api/contact/.env.example` and `site/.env.example` show
+what can be overridden, such as the test keys that always fail.
 
 No AWS credentials are needed for local development, and none are needed to run
 any check in this list.
@@ -76,13 +84,14 @@ Run from the repository root.
 
 | Command                  | Does                                  |
 | ------------------------ | ------------------------------------- |
-| `npm run dev`            | Dev server with hot reloading         |
+| `npm run dev`            | Dev server and local contact API      |
+| `npm run dev:api`        | Local contact API alone               |
 | `npm run build`          | Production build to `site/dist/`      |
 | `npm run check`          | Type and Astro diagnostics            |
 | `npm run lint`           | ESLint, including accessibility rules |
 | `npm run format`         | Format with Prettier                  |
 | `npm run format:check`   | Verify formatting                     |
-| `npm test`               | Unit tests (CloudFront Function, CSP) |
+| `npm test`               | Unit tests (all workspaces)           |
 | `npm run headers`        | Regenerate `config/headers.json`      |
 | `npm run preview`        | Serve the build as CloudFront would   |
 | `npm run infra:check`    | Terraform fmt, validate, test, scans  |
@@ -96,7 +105,8 @@ npm run build && npm run headers && npm run preview
 
 `npm run preview` serves `site/dist/` at `http://localhost:4500` the way the
 CDN will: through the same CloudFront Function file, with missing pages
-answered by the 404 page, and with the exact security headers, including the
+answered by the 404 page, `/api/*` forwarded to the local contact API (start
+it with `npm run dev:api`), and with the exact security headers, including the
 Content-Security-Policy, that CloudFront sends. A CSP violation therefore
 shows up in the browser console here, before a deploy.
 
@@ -109,7 +119,8 @@ when the font configuration does, or when Google updates the font files:
 the committed file is stale.
 
 `npm run infra:check` needs Terraform, tflint and trivy (all in
-`.tool-versions`). It reads no state and calls no AWS API.
+`.tool-versions`). It reads no state and calls no AWS API. It builds the
+contact Lambda's zip first, since Terraform hashes it.
 
 ## Deployment
 
@@ -118,7 +129,9 @@ checks above plus a read-only Terraform plan; the merge rebuilds, applies any
 infrastructure change after an explicit approval, and deploys. No AWS access
 keys exist: GitHub Actions authenticates through OIDC into three narrowly
 scoped roles. [`docs/ci.md`](docs/ci.md) has the pipeline, rollback and setup;
-[`docs/oidc.md`](docs/oidc.md) the roles.
+[`docs/oidc.md`](docs/oidc.md) the roles;
+[`docs/contact.md`](docs/contact.md) the contact form's setup and how to
+rotate its Turnstile secret.
 
 ## Layout
 
@@ -135,7 +148,9 @@ docs/            Infrastructure and pipeline notes
 
 Accessibility is a build-time concern rather than an afterthought:
 accessibility rules run in ESLint, images require alt text in their content
-schemas, and all core content is readable with JavaScript disabled.
+schemas, and all core content is readable with JavaScript disabled. The contact form is the
+one exception, since its spam check is a script; with JavaScript off it stays
+disabled and says why.
 
 The colour palette is verified against WCAG AA contrast ratios, and every
 animation respects `prefers-reduced-motion`.

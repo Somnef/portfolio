@@ -59,13 +59,17 @@ On every push to `main`:
 
 1. **Build** builds the site, checks `headers.json` against it and keeps the
    output as an artifact. The deploy ships exactly this build.
-2. **Terraform plan** plans `infra/main` with the state lock, and uploads the
-   saved plan to `s3://<state bucket>/plans/<run>-<attempt>/tfplan`. Not a
-   GitHub artifact: those are downloadable by anyone on a public repository.
+2. **Terraform plan** builds the contact Lambda's zip, plans `infra/main`
+   with the state lock, and uploads the saved plan and that zip to
+   `s3://<state bucket>/plans/<run>-<attempt>/`. Not a GitHub artifact:
+   those are downloadable by anyone on a public repository. The zip is
+   reproducible (`api/contact/scripts/zip.mjs`), so an unchanged handler
+   never shows up as a Lambda change.
 3. **Terraform apply** runs only if the plan has changes. It waits in the
    `infra` environment for your approval: read the plan summary on the run
    page, then approve or reject. It applies the saved plan, never a fresh one,
-   and deletes it afterwards. Unapproved plans expire after 7 days.
+   with the zip it was planned with (its hash is checked against the plan
+   first), and deletes both afterwards. Unapproved plans expire after 7 days.
 4. **Deploy site** runs after the apply, or straight after the plan when there
    is nothing to apply. A failed or rejected apply blocks it.
 
@@ -132,12 +136,16 @@ gh variable set TF_STATE_BUCKET --body "<state bucket>"
 gh variable set SITE_BUCKET --body "<site bucket>"
 gh variable set CLOUDFRONT_DISTRIBUTION_ID --body "$(terraform -chdir=infra/main output -raw distribution_id)"
 gh variable set SITE_URL --body "https://<domain>"
+gh variable set PUBLIC_TURNSTILE_SITE_KEY --body "<site key>"
 gh secret set MAIN_TFVARS < infra/main/terraform.tfvars
 ```
 
 `MAIN_TFVARS` is the whole `terraform.tfvars`, so CI plans with exactly the
 values you would locally. **After editing the local file, set it again**, or
 CI keeps planning with the old values.
+
+The contact form needs a Turnstile widget, its secret in SSM and the SES
+recipient before its first apply: [`contact.md`](contact.md#setup).
 
 **2. The `infra` environment.** Main only, and you as required reviewer.
 Self-review must stay allowed: on a solo repository you are both the person

@@ -16,12 +16,19 @@ export default tseslint.config(
   {
     // Build-time scripts and tests run in Node, not the browser. Declared explicitly
     // rather than pulling in the `globals` package for one directory.
-    files: ['scripts/**/*.mjs', 'infra/**/*.mjs', 'site/**/*.test.mjs'],
+    files: [
+      'scripts/**/*.mjs',
+      'infra/**/*.mjs',
+      'site/**/*.test.mjs',
+      'site/astro.config.mjs',
+      'api/**/*.mjs',
+    ],
     languageOptions: {
       globals: {
         Buffer: 'readonly',
         console: 'readonly',
         process: 'readonly',
+        Response: 'readonly',
         URL: 'readonly',
         structuredClone: 'readonly',
         __dirname: 'readonly',

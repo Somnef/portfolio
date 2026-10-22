@@ -1,0 +1,22 @@
+{
+  "name": "@portfolio/contact",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Contact form handler: API Gateway HTTP API -> Lambda -> SES.",
+  "scripts": {
+    "build": "node scripts/bundle.mjs",
+    "check": "tsc --noEmit",
+    "test": "node --test \"src/**/*.test.mjs\" \"scripts/**/*.test.mjs\""
+  },
+  "dependencies": {
+    "@aws-sdk/client-sesv2": "^3.1147.0",
+    "@aws-sdk/client-ssm": "^3.1147.0"
+  },
+  "devDependencies": {
+    "@types/aws-lambda": "^8.10.164",
+    "@types/node": "^24.19.1",
+    "esbuild": "0.28.2",
+    "typescript": "~6.0.3"
+  }
+}

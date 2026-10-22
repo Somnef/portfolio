@@ -55,6 +55,7 @@ const en = {
     'This entry has not been translated into French yet, so the English version is shown.',
 
   'nav.writing': 'Writing',
+  'nav.contact': 'Contact',
 
   'writing.heading': 'Writing',
   'writing.intro': 'Tutorials, articles and shorter notes. Filter by type or tag.',
@@ -90,6 +91,38 @@ const en = {
   'notFound.title': 'Page not found',
   'notFound.body': 'Nothing lives at this address. It may have moved, or the link may be wrong.',
   'notFound.home': 'Back to the home page',
+
+  'contact.heading': 'Contact',
+  'contact.intro':
+    'A question about a project, an opportunity, or something you read here? Send me a message and I will reply by email.',
+  'contact.name': 'Name',
+  'contact.email': 'Email',
+  'contact.message': 'Message',
+  'contact.messageHint': 'Up to {max} characters.',
+  'contact.honeypot': 'Leave this field empty',
+  'contact.submit': 'Send message',
+  'contact.sending': 'Sending…',
+  'contact.noscript':
+    'This form needs JavaScript for its spam check, which is switched off in your browser.',
+  'contact.elsewhere': 'Prefer another way? I am also on',
+  'contact.success.heading': 'Message sent',
+  'contact.success.body': 'Thanks for writing. I will reply to the address you gave.',
+  'contact.error.name.required': 'Enter your name.',
+  'contact.error.email.required': 'Enter your email address.',
+  'contact.error.email.invalid': 'Enter an email address like name@example.com.',
+  'contact.error.message.required': 'Write a message.',
+  'contact.error.tooLong': 'This is too long.',
+  'contact.error.invalidChars': 'This contains characters that cannot be sent.',
+  'contact.error.fix': 'Please correct the highlighted fields.',
+  'contact.error.challengePending':
+    'The spam check has not finished yet. Wait a moment, then send again.',
+  'contact.error.challenge': 'The spam check failed. Please try again.',
+  'contact.error.challengeLoad':
+    'The spam check could not load, so the form cannot be sent. A content blocker may be stopping challenges.cloudflare.com.',
+  'contact.error.tooMany':
+    'Too many messages are being sent right now. Please try again in a minute.',
+  'contact.error.generic':
+    'Something went wrong and your message was not sent. Please try again later.',
 } as const;
 
 export type UIStrings = Record<keyof typeof en, string>;

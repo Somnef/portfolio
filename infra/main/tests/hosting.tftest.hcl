@@ -38,6 +38,56 @@ mock_provider "aws" {
       arn = "arn:aws:s3:::example-portfolio-site"
     }
   }
+
+  mock_data "aws_caller_identity" {
+    defaults = {
+      account_id = "123456789012"
+    }
+  }
+
+  mock_data "aws_partition" {
+    defaults = {
+      partition = "aws"
+    }
+  }
+
+  mock_resource "aws_iam_role" {
+    defaults = {
+      arn = "arn:aws:iam::123456789012:role/portfolio-contact"
+    }
+  }
+
+  mock_resource "aws_cloudwatch_log_group" {
+    defaults = {
+      arn = "arn:aws:logs:eu-west-1:123456789012:log-group:/aws/lambda/portfolio-contact"
+    }
+  }
+
+  mock_resource "aws_lambda_function" {
+    defaults = {
+      arn        = "arn:aws:lambda:eu-west-1:123456789012:function:portfolio-contact"
+      invoke_arn = "arn:aws:apigateway:eu-west-1:lambda:path/2015-03-31/functions/arn:aws:lambda:eu-west-1:123456789012:function:portfolio-contact/invocations"
+    }
+  }
+
+  # SES always issues three Easy DKIM tokens.
+  mock_data "aws_sesv2_email_identity" {
+    defaults = {
+      dkim_signing_attributes = [
+        {
+          tokens = ["tokena", "tokenb", "tokenc"]
+        },
+      ]
+    }
+  }
+
+  mock_resource "aws_apigatewayv2_api" {
+    defaults = {
+      api_endpoint  = "https://a1b2c3d4e5.execute-api.eu-west-1.amazonaws.com"
+      execution_arn = "arn:aws:execute-api:eu-west-1:123456789012:a1b2c3d4e5"
+    }
+  }
+
 }
 
 mock_provider "aws" {
@@ -84,6 +134,11 @@ variables {
   enable_www_redirect = true
   budget_limit_usd    = 5
   budget_alert_email  = "alerts@example.com"
+
+  # Runs without a domain need an explicit sender; domain runs that test
+  # the contact@<domain> default set it back to null.
+  contact_recipient_email = "owner@example.org"
+  ses_from_email          = "contact@example.net"
 }
 
 run "without_a_domain" {
@@ -112,6 +167,16 @@ run "without_a_domain" {
   assert {
     condition     = output.name_servers == null
     error_message = "No zone was created, so there are no name servers to report."
+  }
+
+  assert {
+    condition     = aws_sesv2_email_identity.contact.email_identity == "contact@example.net" && length(aws_route53_record.ses_dkim) == 0
+    error_message = "Without a domain, SES verifies the sender address itself, with no DKIM records."
+  }
+
+  assert {
+    condition     = aws_lambda_function.contact.environment[0].variables.TURNSTILE_HOSTNAME == ""
+    error_message = "Without a domain there is no hostname to pin Turnstile tokens to."
   }
 }
 
@@ -219,4 +284,173 @@ run "rejects_a_site_bucket_name_s3_would_refuse" {
   }
 
   expect_failures = [var.site_bucket_name]
+}
+
+# --- Contact form ------------------------------------------------------------
+
+run "contact_on_the_domain" {
+  command = apply
+
+  variables {
+    domain_name    = "example.com"
+    ses_from_email = null
+  }
+
+  assert {
+    condition = [for record in aws_route53_record.ses_dkim : [record.name, record.type, one(record.records)]] == [
+      ["tokena._domainkey.example.com", "CNAME", "tokena.dkim.amazonses.com"],
+      ["tokenb._domainkey.example.com", "CNAME", "tokenb.dkim.amazonses.com"],
+      ["tokenc._domainkey.example.com", "CNAME", "tokenc.dkim.amazonses.com"],
+    ]
+    error_message = "Each DKIM token needs its CNAME to amazonses.com."
+  }
+
+  assert {
+    condition = aws_lambda_function.contact.environment[0].variables == tomap({
+      MAIL_TRANSPORT             = "ses"
+      MAIL_FROM                  = "contact@example.com"
+      MAIL_TO                    = "owner@example.org"
+      TURNSTILE_SECRET_PARAMETER = "/portfolio/turnstile-secret"
+      TURNSTILE_HOSTNAME         = "example.com"
+    })
+    error_message = "The Lambda must send via SES, from contact@<domain>, to the configured recipient."
+  }
+
+  assert {
+    condition     = aws_lambda_function.contact.runtime == "nodejs24.x" && aws_lambda_function.contact.architectures == tolist(["arm64"])
+    error_message = "The handler runs on Node 24, arm64 - the same major as local development."
+  }
+
+  assert {
+    condition     = aws_lambda_function.contact.reserved_concurrent_executions == 2
+    error_message = "Reserved concurrency defaults to 2."
+  }
+
+  assert {
+    condition     = aws_cloudwatch_log_group.contact.retention_in_days == 14 && aws_cloudwatch_log_group.contact_api.retention_in_days == 14
+    error_message = "Both log groups keep 14 days by default."
+  }
+
+  assert {
+    condition     = aws_apigatewayv2_route.contact.route_key == "POST /api/contact"
+    error_message = "The API has exactly one route, POST /api/contact."
+  }
+
+  assert {
+    condition = (
+      aws_apigatewayv2_stage.contact.default_route_settings[0].throttling_rate_limit == 1
+      && aws_apigatewayv2_stage.contact.default_route_settings[0].throttling_burst_limit == 5
+    )
+    error_message = "The stage throttles at 1 request/s with a burst of 5 by default."
+  }
+
+  assert {
+    condition     = aws_lambda_permission.contact.source_arn == "arn:aws:execute-api:eu-west-1:123456789012:a1b2c3d4e5/*/POST/api/contact"
+    error_message = "API Gateway may invoke the function for the one route only."
+  }
+}
+
+run "contact_through_cloudfront" {
+  command = apply
+
+  variables {
+    domain_name = "example.com"
+  }
+
+  assert {
+    condition     = one([for origin in aws_cloudfront_distribution.site.origin : origin.domain_name if origin.origin_id == "contact-api"]) == "a1b2c3d4e5.execute-api.eu-west-1.amazonaws.com"
+    error_message = "The API origin is the execute-api hostname, without its scheme."
+  }
+
+  assert {
+    condition = one([
+      for behavior in aws_cloudfront_distribution.site.ordered_cache_behavior : behavior
+      if behavior.path_pattern == "/api/*"
+      && behavior.target_origin_id == "contact-api"
+      && behavior.cache_policy_id == data.aws_cloudfront_cache_policy.caching_disabled.id
+      && behavior.origin_request_policy_id == aws_cloudfront_origin_request_policy.contact_api.id
+      && behavior.viewer_protocol_policy == "https-only"
+      && contains(behavior.allowed_methods, "POST")
+      && length(behavior.function_association) == 0
+    ]) != null
+    error_message = "/api/* must go to the API uncached, with its own request policy and no viewer-request function."
+  }
+
+  assert {
+    condition     = toset(aws_cloudfront_origin_request_policy.contact_api.headers_config[0].headers[0].items) == toset(["Content-Type", "CloudFront-Viewer-Address"])
+    error_message = "The API receives only Content-Type and the viewer address - never Host."
+  }
+}
+
+run "contact_from_another_domain" {
+  command = apply
+
+  variables {
+    domain_name    = "example.com"
+    ses_from_email = "me@example.net"
+  }
+
+  assert {
+    condition     = aws_sesv2_email_identity.contact.email_identity == "me@example.net" && length(aws_route53_record.ses_dkim) == 0
+    error_message = "A sender off the site's domain is verified as an address, with no DKIM records in the site's zone."
+  }
+}
+
+run "contact_limits_are_variables" {
+  command = apply
+
+  variables {
+    domain_name                     = "example.com"
+    contact_reserved_concurrency    = -1
+    contact_throttle_rate_limit     = 2
+    contact_throttle_burst_limit    = 10
+    log_retention_days              = 30
+    turnstile_secret_parameter_name = "/elsewhere/turnstile"
+  }
+
+  assert {
+    condition     = aws_lambda_function.contact.reserved_concurrent_executions == -1
+    error_message = "-1 removes the reservation, for accounts on the default concurrency quota."
+  }
+
+  assert {
+    condition     = aws_apigatewayv2_stage.contact.default_route_settings[0].throttling_burst_limit == 10
+    error_message = "Throttling follows its variables."
+  }
+
+  assert {
+    condition     = aws_lambda_function.contact.environment[0].variables.TURNSTILE_SECRET_PARAMETER == "/elsewhere/turnstile"
+    error_message = "The parameter name follows its variable."
+  }
+}
+
+run "rejects_no_sender_without_a_domain" {
+  command = plan
+
+  variables {
+    ses_from_email = null
+  }
+
+  expect_failures = [var.ses_from_email]
+}
+
+run "rejects_a_zero_reserved_concurrency" {
+  command = plan
+
+  variables {
+    # 0 would disable the function outright.
+    contact_reserved_concurrency = 0
+  }
+
+  expect_failures = [var.contact_reserved_concurrency]
+}
+
+run "rejects_a_relative_parameter_name" {
+  command = plan
+
+  variables {
+    turnstile_secret_parameter_name = "portfolio/turnstile-secret"
+  }
+
+  expect_failures = [var.turnstile_secret_parameter_name]
 }
