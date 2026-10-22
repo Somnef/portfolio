@@ -20,7 +20,7 @@ permissions: {}
 jobs:
   subject:
     name: Print the token subject
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       id-token: write
     steps:
@@ -59,7 +59,7 @@ jobs:
 
   plan-role:
     name: plan role (expected to succeed)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: subject
     permissions:
       id-token: write
@@ -79,7 +79,7 @@ jobs:
 
   apply-role-denied:
     name: apply role without its environment (expected to FAIL)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: subject
     permissions:
       id-token: write
@@ -109,7 +109,7 @@ jobs:
 
   apply-role:
     name: apply role in its environment (expected to succeed)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: subject
     environment: infra
     permissions:
@@ -130,7 +130,7 @@ jobs:
 
   deploy-role-denied:
     name: deploy role without its environment (expected to FAIL)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: subject
     permissions:
       id-token: write
@@ -158,7 +158,7 @@ jobs:
 
   deploy-role:
     name: deploy role in its environment (expected to succeed)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: subject
     environment: production
     permissions:
