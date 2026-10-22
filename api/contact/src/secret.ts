@@ -2,26 +2,25 @@
  * The Turnstile secret, from wherever this environment keeps it.
  *
  * In Lambda it is an SSM SecureString, created by hand so it never touches
- * code or Terraform state. It is fetched on first use and kept in module
- * scope for SECRET_MAX_AGE_MS, so an execution environment calls
- * GetParameter at most once per window, not once per request. The window is
- * what lets a rotated secret take effect without a redeploy: Cloudflare keeps
- * the old one valid for two hours, and execution environments can outlive
- * that. A failed fetch is not cached: the next request tries again.
+ * code or Terraform state. It is read on every request that reaches the
+ * Turnstile check, with no cache, so a rotated secret takes effect on the
+ * next request. API Gateway's throttle and the reserved concurrency already
+ * bound how often that can happen.
  *
  * Locally, TURNSTILE_SECRET holds one of Cloudflare's dummy secrets and no
  * AWS call is made at all.
  */
 import { GetParameterCommand, SSMClient } from '@aws-sdk/client-ssm';
 
-/** How long a fetched secret is reused before it is read again. */
-export const SECRET_MAX_AGE_MS = 5 * 60 * 1000;
-
 export type ParameterReader = (name: string) => Promise<string>;
 
+// The client, not the secret, is kept across requests: it holds the
+// connection pool and the credentials.
+let ssm: SSMClient | undefined;
+
 const readFromSsm: ParameterReader = async (name) => {
-  const client = new SSMClient({});
-  const { Parameter } = await client.send(
+  ssm ??= new SSMClient({});
+  const { Parameter } = await ssm.send(
     new GetParameterCommand({ Name: name, WithDecryption: true }),
   );
   if (!Parameter?.Value) {
@@ -36,8 +35,6 @@ export interface SecretSource {
   /** Name of the SecureString parameter holding it. */
   parameterName?: string;
   read?: ParameterReader;
-  maxAgeMs?: number;
-  now?: () => number;
 }
 
 export function createSecretLoader(source: SecretSource): () => Promise<string> {
@@ -51,20 +48,5 @@ export function createSecretLoader(source: SecretSource): () => Promise<string> 
   }
 
   const read = source.read ?? readFromSsm;
-  const maxAgeMs = source.maxAgeMs ?? SECRET_MAX_AGE_MS;
-  const now = source.now ?? Date.now;
-  let pending: Promise<string> | null = null;
-  let fetchedAt = 0;
-
-  return () => {
-    if (pending && now() - fetchedAt >= maxAgeMs) pending = null;
-    if (!pending) {
-      fetchedAt = now();
-      pending = read(parameterName).catch((error: unknown) => {
-        pending = null;
-        throw error;
-      });
-    }
-    return pending;
-  };
+  return () => read(parameterName);
 }

@@ -37,8 +37,9 @@ outside Terraform:
   default `/portfolio/turnstile-secret`). It passes the name to the Lambda and
   grants the Lambda role `ssm:GetParameter` on that parameter, plus
   `kms:Decrypt` scoped to it.
-- **The Lambda reads the value at runtime** and keeps it for 5 minutes
-  (`SECRET_MAX_AGE_MS` in [`secret.ts`](../api/contact/src/secret.ts)).
+- **The Lambda reads the value at runtime**, on every request that reaches
+  the Turnstile check, with no cache
+  ([`secret.ts`](../api/contact/src/secret.ts)).
 - **It is in no file, no tfvars, no GitHub secret and no log.**
 
 The **site key** is a different matter. It is public by design, since it is
@@ -115,16 +116,16 @@ is redeployed, and the site key does not change.
      --value "$TS_SECRET" && unset TS_SECRET
    ```
 
-3. Wait 5 minutes. Every running Lambda re-reads the parameter at most 5
-   minutes after it last read it, so by then all of them use the new secret.
+3. The next request already uses the new secret: the Lambda reads the
+   parameter on every request, so nothing needs restarting.
 4. Send a test message from the live form and check that it arrives:
 
    ```sh
    aws logs tail /aws/lambda/portfolio-contact --region <aws_region> --since 10m
    ```
 
-If the form reports that the spam check failed after the two hours, a Lambda
-is still using the old secret. Check that the parameter holds the new one,
+If the form reports that the spam check failed after the two hours, the
+parameter probably still holds the old secret. Check when it last changed,
 without printing it:
 
 ```sh
