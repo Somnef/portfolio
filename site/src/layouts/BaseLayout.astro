@@ -59,6 +59,12 @@ const alternates = (Object.keys(languages) as (keyof typeof languages)[]).map((c
       </>
     )}
     <meta name="generator" content={Astro.generator} />
+    <!-- "m_" in IBM Plex Mono 600, as paths. The SVG is the one browsers
+         use; sizes="32x32" stops Chrome picking the .ico over it, which
+         stays for anything that asks for /favicon.ico by name. -->
+    <link rel="icon" href="/favicon.ico" sizes="32x32" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <!-- Self-hosted @font-face. Deliberately not preloaded; see the fonts
          block in astro.config.mjs for why. -->
     <Font cssVariable="--font-sans" />
