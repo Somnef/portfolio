@@ -138,6 +138,26 @@ describe('createSecretLoader', () => {
     assert.equal(reads, 1);
   });
 
+  it('reads the parameter again once the cached value is too old', async () => {
+    let reads = 0;
+    let clock = 0;
+    const load = createSecretLoader({
+      parameterName: '/p',
+      maxAgeMs: 1000,
+      now: () => clock,
+      read: async () => {
+        reads += 1;
+        return `secret ${reads}`;
+      },
+    });
+    assert.equal(await load(), 'secret 1');
+    clock = 999;
+    assert.equal(await load(), 'secret 1');
+    clock = 1000;
+    assert.equal(await load(), 'secret 2');
+    assert.equal(reads, 2);
+  });
+
   it('does not cache a failed read', async () => {
     let reads = 0;
     const load = createSecretLoader({
