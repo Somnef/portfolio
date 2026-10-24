@@ -156,6 +156,8 @@ variables {
   contact_throttle_burst_limit    = 5
   contact_reserved_concurrency    = 2
   log_retention_days              = 14
+
+  contact_rate_limit_window_seconds = 300
 }
 
 run "without_a_domain" {
@@ -330,6 +332,8 @@ run "contact_on_the_domain" {
       TURNSTILE_SECRET_PARAMETER = "/portfolio/turnstile-secret"
       TURNSTILE_HOSTNAME         = "example.com"
       ORIGIN_VERIFY_SECRET       = "mock-origin-verify-secret"
+      RATE_LIMIT_TABLE           = "portfolio-contact-limits"
+      RATE_LIMIT_WINDOW_SECONDS  = "300"
     })
     error_message = "The Lambda must send via SES, from contact@<domain>, to the configured recipient."
   }
@@ -337,6 +341,16 @@ run "contact_on_the_domain" {
   assert {
     condition     = aws_lambda_function.contact.runtime == "nodejs24.x" && aws_lambda_function.contact.architectures == tolist(["arm64"])
     error_message = "The handler runs on Node 24, arm64 - the same major as local development."
+  }
+
+  assert {
+    condition = (
+      aws_dynamodb_table.contact_limits.billing_mode == "PAY_PER_REQUEST"
+      && aws_dynamodb_table.contact_limits.hash_key == "pk"
+      && one(aws_dynamodb_table.contact_limits.ttl).attribute_name == "expiresAt"
+      && one(aws_dynamodb_table.contact_limits.ttl).enabled
+    )
+    error_message = "The limit table is on demand, keyed by pk, and expires items through expiresAt."
   }
 
   assert {
@@ -479,4 +493,27 @@ run "rejects_a_relative_parameter_name" {
   }
 
   expect_failures = [var.turnstile_secret_parameter_name]
+}
+
+run "rejects_a_rate_limit_window_too_short_to_mean_anything" {
+  command = plan
+
+  variables {
+    contact_rate_limit_window_seconds = 30
+  }
+
+  expect_failures = [var.contact_rate_limit_window_seconds]
+}
+
+run "turns_the_rate_limit_off_with_zero" {
+  command = plan
+
+  variables {
+    contact_rate_limit_window_seconds = 0
+  }
+
+  assert {
+    condition     = aws_lambda_function.contact.environment[0].variables["RATE_LIMIT_WINDOW_SECONDS"] == "0"
+    error_message = "0 reaches the Lambda, which then skips the limit."
+  }
 }

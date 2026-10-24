@@ -1,7 +1,7 @@
 /**
  * POST /api/contact, as API Gateway's HTTP API delivers it (payload 2.0).
  *
- *   origin check -> validate -> bot check -> Turnstile -> send
+ *   origin check -> validate -> bot check -> Turnstile -> per-IP limit -> send
  *
  * Every dependency arrives through createHandler, so tests drive the real
  * request flow with fakes and the local API (scripts/dev-api.mjs) drives it
@@ -13,6 +13,7 @@
 import { createHash, timingSafeEqual } from 'node:crypto';
 import type { APIGatewayProxyEventV2, APIGatewayProxyStructuredResultV2 } from 'aws-lambda';
 import { composeMail, type MailTransport } from './mail.ts';
+import { limitKey, type RateLimiter } from './ratelimit.ts';
 import { verifyTurnstile, type VerifyOptions, type VerifyResult } from './turnstile.ts';
 import { validate, type Field, type FieldError } from './validate.ts';
 
@@ -29,6 +30,7 @@ export type ResponseBody =
         | 'tooLarge'
         | 'badRequest'
         | 'challenge'
+        | 'rateLimited'
         | 'unavailable'
         | 'sendFailed';
     };
@@ -45,6 +47,8 @@ export interface HandlerDeps {
   expectedHostname?: string;
   loadSecret: () => Promise<string>;
   send: MailTransport;
+  /** One message per visitor per window. Without it, no per-IP limit. */
+  limiter?: RateLimiter;
   verify?: (options: VerifyOptions) => Promise<VerifyResult>;
   now?: () => Date;
   log?: (entry: Record<string, unknown>) => void;
@@ -169,9 +173,37 @@ export function createHandler(deps: HandlerDeps) {
       });
     }
 
+    // After Turnstile, so a slot is only spent by someone who solved it.
+    // A limiter failure lets the message through: the limit is a second
+    // line behind Turnstile, not worth losing a real message over.
+    const ip = visitorIp(event);
+    const slot = deps.limiter && ip ? limitKey(ip, secret) : undefined;
+    if (deps.limiter && slot) {
+      let claimed = true;
+      try {
+        claimed = await deps.limiter.claim(slot, now());
+      } catch (error) {
+        log({
+          outcome: 'limitUnavailable',
+          requestId: event.requestContext?.requestId,
+          error: errorName(error),
+        });
+      }
+      if (!claimed) {
+        record('rateLimited', 429);
+        return respond(
+          429,
+          { ok: false, error: 'rateLimited' },
+          { 'retry-after': String(deps.limiter.windowSeconds) },
+        );
+      }
+    }
+
     try {
       await deps.send(composeMail(submission, { from: deps.from, to: deps.to }, now()));
     } catch (error) {
+      // Nothing was sent, so the visitor may try again straight away.
+      if (deps.limiter && slot) await deps.limiter.release(slot).catch(() => undefined);
       record('sendFailed', 502, { error: errorName(error) });
       return respond(502, { ok: false, error: 'sendFailed' });
     }
