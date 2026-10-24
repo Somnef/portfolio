@@ -90,6 +90,15 @@ mock_provider "aws" {
 
 }
 
+# random_password's result, fixed so assertions can name it.
+mock_provider "random" {
+  mock_resource "random_password" {
+    defaults = {
+      result = "mock-origin-verify-secret"
+    }
+  }
+}
+
 mock_provider "aws" {
   alias = "us_east_1"
 
@@ -320,6 +329,7 @@ run "contact_on_the_domain" {
       MAIL_TO                    = "owner@example.org"
       TURNSTILE_SECRET_PARAMETER = "/portfolio/turnstile-secret"
       TURNSTILE_HOSTNAME         = "example.com"
+      ORIGIN_VERIFY_SECRET       = "mock-origin-verify-secret"
     })
     error_message = "The Lambda must send via SES, from contact@<domain>, to the configured recipient."
   }
@@ -368,6 +378,14 @@ run "contact_through_cloudfront" {
   assert {
     condition     = one([for origin in aws_cloudfront_distribution.site.origin : origin.domain_name if origin.origin_id == "contact-api"]) == "a1b2c3d4e5.execute-api.eu-west-1.amazonaws.com"
     error_message = "The API origin is the execute-api hostname, without its scheme."
+  }
+
+  assert {
+    condition = one([for origin in aws_cloudfront_distribution.site.origin : origin.custom_header if origin.origin_id == "contact-api"]) == toset([{
+      name  = "x-origin-verify"
+      value = "mock-origin-verify-secret"
+    }])
+    error_message = "CloudFront must send the Lambda's origin secret to the API, and only that header."
   }
 
   assert {

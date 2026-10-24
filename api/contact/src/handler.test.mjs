@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { handlerFromEnv } from './config.ts';
-import { createHandler, visitorIp } from './handler.ts';
+import { createHandler, fromCloudFront, visitorIp } from './handler.ts';
 
 const form = {
   name: 'Ada Lovelace',
@@ -210,6 +210,42 @@ describe('handler: logging', () => {
   });
 });
 
+describe('handler: origin check', () => {
+  const originSecret = 'a-long-random-origin-secret';
+
+  it('refuses a request without the CloudFront secret before reading it', async () => {
+    for (const headers of [{}, { 'x-origin-verify': 'wrong' }, { 'x-origin-verify': '' }]) {
+      const { handler, calls } = setup({ originSecret });
+      const result = await handler(event({ headers }));
+      assert.equal(result.statusCode, 403);
+      assert.deepEqual(json(result), { ok: false, error: 'forbidden' });
+      assert.equal(calls.secretReads, 0);
+      assert.equal(calls.verify.length + calls.send.length, 0);
+      assert.equal(calls.logs[0].stage, 'origin');
+    }
+  });
+
+  it('lets a request with the secret through', async () => {
+    const { handler, calls } = setup({ originSecret });
+    const result = await handler(event({ headers: { 'x-origin-verify': originSecret } }));
+    assert.equal(result.statusCode, 200);
+    assert.equal(calls.send.length, 1);
+  });
+
+  it('never logs the secret', async () => {
+    const { handler, calls } = setup({ originSecret });
+    await handler(event({ headers: { 'x-origin-verify': 'wrong' } }));
+    assert.equal(JSON.stringify(calls.logs).includes('wrong'), false);
+  });
+
+  it('compares values of different lengths without throwing', () => {
+    const withSecret = (value) => ({ ...event(), headers: { 'x-origin-verify': value } });
+    assert.equal(fromCloudFront(withSecret('x'), originSecret), false);
+    assert.equal(fromCloudFront(withSecret(originSecret + 'x'), originSecret), false);
+    assert.equal(fromCloudFront(withSecret(originSecret), originSecret), true);
+  });
+});
+
 describe('visitorIp', () => {
   const withHeaders = (headers) => ({ ...event(), headers });
 
@@ -246,6 +282,12 @@ describe('handlerFromEnv', () => {
       assert.throws(() => handlerFromEnv({ ...env, [name]: undefined }), new RegExp(name));
     });
   }
+
+  it('requires the origin secret inside Lambda, not locally', () => {
+    const lambda = { ...env, MAIL_TRANSPORT: 'ses', AWS_LAMBDA_FUNCTION_NAME: 'portfolio-contact' };
+    assert.throws(() => handlerFromEnv(lambda), /ORIGIN_VERIFY_SECRET/);
+    assert.equal(typeof handlerFromEnv({ ...lambda, ORIGIN_VERIFY_SECRET: 'x' }), 'function');
+  });
 
   it('fails at startup with no Turnstile secret source', () => {
     assert.throws(

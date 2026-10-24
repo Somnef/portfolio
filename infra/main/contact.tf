@@ -13,8 +13,10 @@
  * state.
  *
  * The execute-api endpoint also answers directly, around CloudFront; it has
- * to, since CloudFront calls it. The throttling and Turnstile hold either
- * way, so there is nothing to gain from hiding it.
+ * to, since CloudFront calls it. So CloudFront adds a secret header on the
+ * way, and the handler refuses any request without it (403): every request
+ * that does real work came through CloudFront, which is what makes its
+ * CloudFront-Viewer-Address, the visitor's IP, trustworthy.
  */
 
 data "aws_caller_identity" "current" {}
@@ -39,6 +41,20 @@ locals {
   turnstile_parameter_arn  = "arn:${local.partition}:ssm:${var.aws_region}:${local.account_id}:parameter${local.turnstile_parameter_name}"
 
   contact_bundle = "${path.module}/../../api/contact/dist/contact.zip"
+}
+
+/*
+ * The x-origin-verify value. Unlike the Turnstile secret it does live in
+ * state (and in the distribution and Lambda configuration): CloudFront
+ * needs it in its config. It guards less: leaked, it lets a caller skip
+ * CloudFront and pose as other IPs, while Turnstile and the throttle still
+ * hold. Rotate with terraform apply -replace=random_password.origin_verify;
+ * direct-to-API refusals briefly include real visitors while CloudFront
+ * deploys the new value, a few minutes.
+ */
+resource "random_password" "origin_verify" {
+  length  = 64
+  special = false
 }
 
 # --- SES ---------------------------------------------------------------------
@@ -211,6 +227,7 @@ resource "aws_lambda_function" "contact" {
       MAIL_TO                    = var.contact_recipient_email
       TURNSTILE_SECRET_PARAMETER = local.turnstile_parameter_name
       TURNSTILE_HOSTNAME         = local.domain_enabled ? var.domain_name : ""
+      ORIGIN_VERIFY_SECRET       = random_password.origin_verify.result
     }
   }
 
