@@ -139,6 +139,14 @@ variables {
   # the contact@<domain> default set it back to null.
   contact_recipient_email = "owner@example.org"
   ses_from_email          = "contact@example.net"
+
+  # At their defaults, which the runs below assert. Left unpinned, a local
+  # terraform.tfvars that tunes them would fail those runs.
+  turnstile_secret_parameter_name = null
+  contact_throttle_rate_limit     = 1
+  contact_throttle_burst_limit    = 5
+  contact_reserved_concurrency    = 2
+  log_retention_days              = 14
 }
 
 run "without_a_domain" {
